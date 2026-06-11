@@ -1,0 +1,53 @@
+{
+  "name": "trading-journal",
+  "private": true,
+  "version": "1.2.0",
+  "description": "Trading Journal con sync MT5",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "bridge": "node bridge/server.mjs",
+    "mt5": "python -u -X utf8 bridge-python/mt5_sync.py",
+    "dev:all": "concurrently -n bridge,vite -c blue,green \"npm run bridge\" \"npm run dev\"",
+    "start": "concurrently -n bridge,mt5,vite -c blue,magenta,green \"npm run bridge\" \"npm run mt5\" \"npm run dev\"",
+    "start:prod": "npm run build && concurrently -n bridge,mt5,web -c blue,magenta,green \"npm run bridge\" \"npm run mt5\" \"npm run preview\"",
+    "app": "npm run build && electron .",
+    "app:dev": "concurrently -n bridge,mt5,vite,electron -c blue,magenta,green,yellow \"npm run bridge\" \"npm run mt5\" \"npm run dev\" \"wait-on http://127.0.0.1:5173 http://127.0.0.1:3847/api/status && electron . --dev\"",
+    "pack:win": "npm run build && electron-builder --win --config electron-builder.yml",
+    "pack:portable": "electron-builder --win portable --config electron-builder.yml",
+    "pack:installer": "npm run build && electron-builder --win nsis --config electron-builder.yml",
+    "pack:all": "npm run build && electron-builder --win portable nsis --config electron-builder.yml",
+    "pack:publish": "electron-builder --win portable nsis --config electron-builder.yml --publish always",
+    "dist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-ejecutable.ps1",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "date-fns": "^4.2.1",
+    "electron-updater": "^6.8.9",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "ws": "^8.18.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "electron": "^35.7.5",
+    "electron-builder": "^25.1.8",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^8.0.12",
+    "wait-on": "^8.0.5"
+  }
+}

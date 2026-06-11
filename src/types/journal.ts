@@ -1,0 +1,93 @@
+export interface TradeChecklist {
+  hadSetup: boolean
+  respectedRisk: boolean
+  inTradingHours: boolean
+}
+
+export interface TradeMeta {
+  tags?: string[]
+  riskAmount?: number
+  riskPercent?: number
+  rewardAmount?: number
+  rrRatio?: number
+  screenshotUrl?: string
+  chartLink?: string
+  checklist?: TradeChecklist
+  journalNotes?: string
+}
+
+export interface DailyNote {
+  text: string
+  whatWorked: string
+  whatFailed: string
+}
+
+export interface TrackingGoals {
+  dailyProfitGoal?: number
+  dailyLossLimit?: number
+  weeklyProfitGoal?: number
+  alertOnLossLimit?: boolean
+}
+
+export type TradingSession = 'asia' | 'london' | 'ny' | 'other'
+
+export interface SymbolStats {
+  symbol: string
+  trades: number
+  wins: number
+  losses: number
+  pnl: number
+  fees: number
+  swap: number
+  winRate: number
+  avgPnl: number
+}
+
+export interface SessionStats {
+  session: TradingSession
+  trades: number
+  pnl: number
+  winRate: number
+}
+
+export interface StreakInfo {
+  currentWin: number
+  currentLoss: number
+  maxWin: number
+  maxLoss: number
+  currentGreenDays: number
+  currentRedDays: number
+  maxGreenDays: number
+  maxRedDays: number
+}
+
+export interface DrawdownInfo {
+  maxDrawdown: number
+  maxDrawdownPct: number
+  peakBalance: number
+  troughBalance: number
+  peakDate: string
+  troughDate: string
+}
+
+export interface EquityPoint {
+  date: string
+  balance: number
+  pnl: number
+}
+
+export interface PeriodCompare {
+  label: string
+  current: { pnl: number; trades: number; winRate: number }
+  previous: { pnl: number; trades: number; winRate: number }
+}
+
+export interface AdvancedMetrics {
+  expectancy: number
+  profitFactor: number
+  avgWin: number
+  avgLoss: number
+  avgRR: number
+  avgRiskPct: number
+  avgHoldMinutes: number
+}

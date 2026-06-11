@@ -1,0 +1,41 @@
+appId: com.tradingjournal.desktop
+productName: Trading Journal
+copyright: Copyright © 2026
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - bridge/**/*
+  - "!bridge/bridge-state.json"
+  - bridge-python/**/*
+  - electron/**/*
+  - package.json
+  - node_modules/ws/**/*
+
+extraResources:
+  - from: build/mt5-sync.exe
+    to: mt5-sync.exe
+
+asarUnpack:
+  - bridge/**/*
+  - bridge-python/**/*
+  - node_modules/ws/**/*
+  - node_modules/electron-updater/**/*
+
+win:
+  target:
+    - portable
+  icon: build/icon.png
+  signAndEditExecutable: false
+
+portable:
+  artifactName: Trading-Journal.exe
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: Trading-Journal-Setup-${version}.exe

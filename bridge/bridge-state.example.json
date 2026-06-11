@@ -1,0 +1,11 @@
+{
+  "lastSeen": null,
+  "account": null,
+  "server": null,
+  "balance": null,
+  "equity": null,
+  "trades": [],
+  "cashMovements": [],
+  "openPositions": {},
+  "events": []
+}
