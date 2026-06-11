@@ -2,10 +2,7 @@
 
 ## Español
 
-El repositorio local ya tiene commits ordenados en `main`:
-
-1. `docs: add bilingual project documentation (ES/EN)`
-2. `feat: trading journal v1.2.0 with MT5 sync and Electron desktop`
+El repositorio local tiene un único commit inicial en `main` (sin datos personales en el historial).
 
 ### Pasos (una sola vez)
 
@@ -37,7 +34,7 @@ Revisa [PRIVACY.md](PRIVACY.md) — no subas `bridge-state.json`, Excel de MT5 n
 
 ## English
 
-The local repo has two ordered commits on `main` (see above).
+The local repo has a single clean initial commit on `main`.
 
 ### Steps (one-time)
 
