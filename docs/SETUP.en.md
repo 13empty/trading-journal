@@ -2,6 +2,15 @@
 
 ## 1. End user — portable .exe only
 
+### Download (recommended)
+
+1. Open **[Releases](https://github.com/13empty/trading-journal/releases)** on GitHub.
+2. Download **`Trading-Journal.exe`** from the latest version.
+3. Keep **MetaTrader 5** running with your account logged in.
+4. Double-click the `.exe`.
+
+### Build from source
+
 1. Clone or download this repository.
 2. Run **`Crear-Ejecutable.bat`** at the project root.
 3. Wait 5–15 minutes (builds UI, `mt5-sync.exe`, and Electron package).

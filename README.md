@@ -33,7 +33,15 @@ Aplicación de escritorio para llevar un **diario de trading** con calendario Pn
 
 ### Inicio rápido (usuario)
 
-1. Ejecuta `Crear-Ejecutable.bat` (una vez) → genera `release/Trading-Journal.exe`
+**Opción 1 — Descargar (recomendado)**
+
+1. Ve a **[Releases](https://github.com/13empty/trading-journal/releases)** y descarga `Trading-Journal.exe`
+2. Abre MT5 e inicia sesión
+3. Doble clic en el ejecutable
+
+**Opción 2 — Compilar tú mismo**
+
+1. Ejecuta `Crear-Ejecutable.bat` → genera `release/Trading-Journal.exe`
 2. Abre MT5 e inicia sesión
 3. Doble clic en **Trading-Journal.exe**
 
@@ -101,6 +109,14 @@ Desktop **trading journal** with a PnL calendar, daily notes, analytics, and liv
 - **MetaTrader 5** running and logged in
 
 ### Quick start (end user)
+
+**Option 1 — Download (recommended)**
+
+1. Go to **[Releases](https://github.com/13empty/trading-journal/releases)** and download `Trading-Journal.exe`
+2. Open MT5 and log in
+3. Double-click the executable
+
+**Option 2 — Build from source**
 
 1. Run `Crear-Ejecutable.bat` once → outputs `release/Trading-Journal.exe`
 2. Open MT5 and log in

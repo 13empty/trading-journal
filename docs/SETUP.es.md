@@ -2,11 +2,20 @@
 
 ## 1. Usuario final — solo el .exe
 
+### Descargar (recomendado)
+
+1. Abre **[Releases](https://github.com/13empty/trading-journal/releases)** en GitHub.
+2. Descarga **`Trading-Journal.exe`** de la última versión.
+3. Abre **MetaTrader 5** con tu cuenta (IC Markets u otro).
+4. Doble clic en el `.exe`.
+
+### Compilar desde el código
+
 1. Clona o descarga este repositorio.
 2. Ejecuta **`Crear-Ejecutable.bat`** en la raíz del proyecto.
 3. Espera 5–15 minutos (compila interfaz, `mt5-sync.exe` y empaqueta Electron).
 4. Abre **`release/Trading-Journal.exe`**.
-5. Ten **MetaTrader 5** abierto con tu cuenta (IC Markets u otro).
+5. Ten **MetaTrader 5** abierto con tu cuenta.
 
 ### Primer arranque
 
