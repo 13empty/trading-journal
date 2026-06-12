@@ -9,6 +9,7 @@ import { SystemHealthPanel, type HealthCheck } from './components/SystemHealth'
 import { AnalyticsPanel } from './components/AnalyticsPanel'
 import { ProjectionPanel } from './components/ProjectionPanel'
 import { DayHero } from './components/DayHero'
+import { ThresholdRulesPanel } from './components/ThresholdRulesPanel'
 import { buildEquityCurve } from './lib/analytics'
 import { SettingsPanel } from './components/SettingsPanel'
 import { WelcomeModal } from './components/WelcomeModal'
@@ -52,7 +53,12 @@ import {
 } from './lib/journalStorage'
 import type { PeriodView } from './types/trade'
 import type { DailyNote, TradeMeta } from './types/journal'
-import { goalAlert } from './lib/analytics'
+import {
+  alertsEnabled,
+  evaluateThresholdRules,
+  hasThresholdWarning,
+  isTradingRulesEnabled,
+} from './lib/thresholdRules'
 import { type BackupBundle } from './lib/backup'
 import { desktopNotify, getDesktopInfo } from './lib/desktop'
 import { tradeMetaKey as journalTradeKey } from './lib/journalStorage'
@@ -98,7 +104,6 @@ function App() {
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const mt5ConnectedOnce = useRef(false)
-  const lossNotifiedDate = useRef<string | null>(null)
 
   const persistTrades = useCallback((next: Trade[]) => {
     setTrades(next)
@@ -305,7 +310,8 @@ function App() {
     () => (dayTrades.length ? (dayTrades.filter((t) => t.pnl >= 0).length / dayTrades.length) * 100 : 0),
     [dayTrades],
   )
-  const equityPoints = useMemo(() => buildEquityCurve(activities).slice(-90), [activities])
+  const equityCurve = useMemo(() => buildEquityCurve(activities), [activities])
+  const equityPoints = useMemo(() => equityCurve.slice(-90), [equityCurve])
   const dayHeroSubtitle = useMemo(() => {
     if (latestTradeDate && latestTradeDate !== todayKey) {
       return tf(t.header.lastTrade, { last: latestTradeDate, today: todayKey })
@@ -323,18 +329,70 @@ function App() {
   const wr = useMemo(() => winRate(activeTrades), [activeTrades])
   const selectedDayPnl = selectedDay?.pnl ?? 0
   const dayNote = dailyNotesMap[selectedDate] ?? { text: '', whatWorked: '', whatFailed: '' }
-  const lossAlert = goalAlert(selectedDayPnl, settings)
+
+  const todayDay = dayMap.get(todayKey)
+  const todayDayTrades = useMemo(
+    () => tradesForView.filter((t) => t.date === todayKey),
+    [tradesForView, todayKey],
+  )
+
+  const thresholdRulesForDay = useMemo(
+    () =>
+      evaluateThresholdRules({
+        settings,
+        dayPnl: selectedDay?.pnl ?? 0,
+        dayTrades: dayTrades,
+        equityCurve,
+        liveBalance: selectedDate === todayKey ? displayBalance : null,
+        openCount: selectedDate === todayKey ? (selectedDay?.openCount ?? 0) : 0,
+      }),
+    [
+      settings,
+      selectedDay,
+      dayTrades,
+      equityCurve,
+      displayBalance,
+      selectedDate,
+      todayKey,
+    ],
+  )
+
+  const todayThresholdRules = useMemo(
+    () =>
+      evaluateThresholdRules({
+        settings,
+        dayPnl: todayDay?.pnl ?? 0,
+        dayTrades: todayDayTrades,
+        equityCurve,
+        liveBalance: displayBalance,
+        openCount: todayDay?.openCount ?? 0,
+      }),
+    [settings, todayDay, todayDayTrades, equityCurve, displayBalance],
+  )
+
+  const todayRuleBreach = isTradingRulesEnabled(settings) && hasThresholdWarning(todayThresholdRules)
+  const thresholdNotified = useRef<Set<string>>(new Set())
 
   useEffect(() => {
-    if (!lossAlert || !settings.dailyLossLimit) return
-    if (lossNotifiedDate.current === selectedDate) return
-    lossNotifiedDate.current = selectedDate
-    void desktopNotify(
-      'Trading Journal',
-      t.analytics.lossLimitHit.replace('{limit}', String(settings.dailyLossLimit)),
-      settings.desktopNotifications !== false,
-    )
-  }, [lossAlert, selectedDate, settings.dailyLossLimit, settings.desktopNotifications, t.analytics.lossLimitHit])
+    if (!alertsEnabled(settings) || !todayRuleBreach) return
+    for (const rule of todayThresholdRules) {
+      if (rule.status !== 'warn') continue
+      const key = `${todayKey}:${rule.id}`
+      if (thresholdNotified.current.has(key)) continue
+      thresholdNotified.current.add(key)
+      void desktopNotify(
+        'Trading Journal',
+        t.thresholds.interruptBanner,
+        settings.desktopNotifications !== false,
+      )
+    }
+  }, [
+    todayRuleBreach,
+    todayThresholdRules,
+    todayKey,
+    settings,
+    t.thresholds.interruptBanner,
+  ])
 
   const saveDayNote = (patch: Partial<DailyNote>) => {
     const next = {
@@ -615,9 +673,9 @@ function App() {
         </nav>
         </header>
 
-        {lossAlert && mainTab === 'day' && (
-          <div className="goal-alert" role="alert">
-            {t.analytics.lossLimitHit.replace('{limit}', String(settings.dailyLossLimit))}
+        {todayRuleBreach && (
+          <div className="threshold-interrupt" role="alert">
+            {t.thresholds.interruptBanner}
           </div>
         )}
 
@@ -656,6 +714,10 @@ function App() {
           />
         ) : (
           <div className="tab-panel-day">
+        {isTradingRulesEnabled(settings) && (
+          <ThresholdRulesPanel rules={thresholdRulesForDay} t={t.thresholds} />
+        )}
+
         <DayHero
           selectedDate={selectedDate}
           selectedDay={selectedDay}
@@ -666,6 +728,7 @@ function App() {
           dateFormat={t.header.dateFormat}
           dateLocale={dateLocale}
           subtitle={dayHeroSubtitle}
+          hideChart={selectedDate === todayKey && todayRuleBreach}
           t={t.dayHero}
         />
 

@@ -1102,7 +1102,81 @@ letter-spacing:.04em}
 grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
 .btn-sidebar-muted{
 opacity:.9}
+.settings-master-toggle{
+margin:.5rem 0 .75rem;
+font-size:.85rem;
+font-weight:600}
+.threshold-settings-fields{
+margin-top:.25rem}
 .goal-alert{background:color-mix(in srgb,var(--red) 15%,var(--surface));border:1px solid color-mix(in srgb,var(--red) 45%,transparent);color:var(--text);padding:.65rem .85rem;border-radius:8px;margin-bottom:.75rem;font-size:.85rem}
+.threshold-interrupt{
+background:color-mix(in srgb,var(--red) 22%,#1a0a0a);
+border:2px solid color-mix(in srgb,var(--red) 65%,transparent);
+color:var(--text);
+padding:.7rem .9rem;
+border-radius:8px;
+margin-bottom:.75rem;
+font-size:.88rem;
+font-weight:700;
+letter-spacing:.02em;
+text-transform:uppercase}
+.threshold-rules-panel{
+margin-bottom:.75rem;
+padding:.75rem .85rem}
+.threshold-rules-panel.has-warn{
+border-color:color-mix(in srgb,var(--red) 55%,var(--border));
+background:color-mix(in srgb,var(--red) 6%,var(--surface))}
+.threshold-rules-panel h3{
+margin:0 0 .25rem;
+font-size:.92rem;
+font-weight:700}
+.threshold-rules-sub{
+color:var(--muted);
+margin:0 0 .55rem;
+font-size:.72rem;
+line-height:1.35}
+.threshold-rules-list{
+list-style:none;
+margin:0;
+padding:0;
+display:flex;
+flex-direction:column;
+gap:.35rem}
+.threshold-rule{
+display:grid;
+grid-template-columns:1fr auto minmax(7rem,1.2fr);
+gap:.5rem .65rem;
+align-items:baseline;
+padding:.4rem .5rem;
+border:1px solid var(--border);
+border-radius:6px;
+background:var(--bg);
+font-size:.78rem}
+.threshold-rule-name{
+font-weight:600;
+color:var(--text)}
+.threshold-rule-status{
+font-weight:800;
+font-size:.72rem;
+letter-spacing:.06em;
+text-transform:uppercase}
+.threshold-status-ok{color:var(--muted)}
+.threshold-status-warn{color:var(--red)}
+.threshold-status-off{color:var(--muted);
+opacity:.65}
+.threshold-rule-detail{
+color:var(--muted);
+font-variant-numeric:tabular-nums;
+text-align:right;
+font-size:.72rem}
+.threshold-rule.threshold-warn{
+border-color:color-mix(in srgb,var(--red) 50%,var(--border));
+background:color-mix(in srgb,var(--red) 8%,var(--bg))}
+.threshold-rules-panel.compact{
+padding:.5rem .65rem;
+margin-bottom:.5rem}
+.threshold-rules-panel.compact .threshold-rules-list{
+gap:.25rem}
 .analytics-panel{display:flex;flex-direction:column;gap:.75rem}
 .analytics-toolbar{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
 .analytics-section h3{margin:0 0 .65rem}

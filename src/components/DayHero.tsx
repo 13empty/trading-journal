@@ -17,6 +17,7 @@ interface Props {
   dateFormat: string
   dateLocale: Locale
   subtitle?: string
+  hideChart?: boolean
   t: Translations['dayHero']
 }
 
@@ -30,6 +31,7 @@ export function DayHero({
   dateFormat,
   dateLocale,
   subtitle,
+  hideChart = false,
   t,
 }: Props) {
   const pnl = selectedDay?.pnl ?? 0
@@ -71,10 +73,12 @@ export function DayHero({
         </div>
       </div>
 
-      <div className="day-hero-chart">
-        <h4 className="day-hero-chart-title">{t.equity}</h4>
-        <EquityCurve points={equityPoints} />
-      </div>
+      {!hideChart && (
+        <div className="day-hero-chart">
+          <h4 className="day-hero-chart-title">{t.equity}</h4>
+          <EquityCurve points={equityPoints} />
+        </div>
+      )}
     </section>
   )
 }

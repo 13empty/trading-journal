@@ -27,6 +27,26 @@ export interface TrackingGoals {
   dailyLossLimit?: number
   weeklyProfitGoal?: number
   alertOnLossLimit?: boolean
+  /** Max closed trades per day before rule fires */
+  maxTradesPerDay?: number
+  /** Minutes after a loss before another trade flags revenge risk */
+  revengeCooldownMinutes?: number
+  /** Current drawdown from equity peak (%) before rule fires */
+  maxDrawdownFromPeakPct?: number
+  /** Desktop alerts for threshold rules (loss, trades, revenge, drawdown) */
+  alertOnThresholds?: boolean
+  /** Master switch: show rules panel, interrupts, and threshold alerts */
+  tradingRulesEnabled?: boolean
+}
+
+export type ThresholdRuleId = 'daily_loss' | 'max_trades' | 'revenge_risk' | 'drawdown_peak'
+
+export type ThresholdStatus = 'ok' | 'warn' | 'off'
+
+export interface ThresholdRuleState {
+  id: ThresholdRuleId
+  status: ThresholdStatus
+  detail?: string
 }
 
 export type TradingSession = 'asia' | 'london' | 'ny' | 'other'

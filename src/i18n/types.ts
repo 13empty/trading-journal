@@ -354,6 +354,14 @@ export interface Translations {
     checkUpdates: string
     updateFeedHint: string
     updateFeedUrl: string
+    thresholdsTitle: string
+    thresholdsHint: string
+    dailyLossLimit: string
+    maxTradesPerDay: string
+    revengeCooldown: string
+    maxDrawdownPct: string
+    alertOnThresholds: string
+    enableTradingRules: string
   }
   welcome: {
     title: string
@@ -428,5 +436,27 @@ export interface Translations {
     hint: string
     editNotes: string
     close: string
+  }
+  thresholds: {
+    title: string
+    subtitle: string
+    dailyLoss: string
+    maxTrades: string
+    revengeRisk: string
+    drawdownPeak: string
+    statusOk: string
+    statusWarn: string
+    statusOff: string
+    notConfigured: string
+    revengeAfterLoss: string
+    revengeOpenAfterLoss: string
+    interruptBanner: string
+    settingsTitle: string
+    settingsHint: string
+    dailyLossLimit: string
+    maxTradesPerDay: string
+    revengeCooldown: string
+    maxDrawdownPct: string
+    alertOnThresholds: string
   }
 }

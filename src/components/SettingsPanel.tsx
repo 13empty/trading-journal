@@ -169,6 +169,106 @@ export function SettingsPanel({
       </section>
 
       <section className="panel settings-section">
+        <h3>{t.thresholdsTitle}</h3>
+        <p className="hint-inline">{t.thresholdsHint}</p>
+        <label className="check-row settings-master-toggle">
+          <input
+            type="checkbox"
+            checked={settings.tradingRulesEnabled === true}
+            onChange={(e) =>
+              onSettingsChange({
+                ...settings,
+                tradingRulesEnabled: e.target.checked,
+              })
+            }
+          />
+          {t.enableTradingRules}
+        </label>
+        {settings.tradingRulesEnabled && (
+        <div className="threshold-settings-fields">
+        <div className="goals-grid">
+          <label>
+            {t.dailyLossLimit}
+            <input
+              type="number"
+              step="any"
+              value={settings.dailyLossLimit ?? ''}
+              onChange={(e) =>
+                onSettingsChange({
+                  ...settings,
+                  dailyLossLimit: parseFloat(e.target.value) || undefined,
+                  alertOnLossLimit: settings.alertOnLossLimit ?? true,
+                })
+              }
+            />
+          </label>
+          <label>
+            {t.maxTradesPerDay}
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={settings.maxTradesPerDay ?? ''}
+              onChange={(e) =>
+                onSettingsChange({
+                  ...settings,
+                  maxTradesPerDay: parseInt(e.target.value, 10) || undefined,
+                })
+              }
+            />
+          </label>
+          <label>
+            {t.revengeCooldown}
+            <input
+              type="number"
+              min={0}
+              step={1}
+              placeholder="30"
+              value={settings.revengeCooldownMinutes ?? ''}
+              onChange={(e) =>
+                onSettingsChange({
+                  ...settings,
+                  revengeCooldownMinutes: parseInt(e.target.value, 10) || undefined,
+                })
+              }
+            />
+          </label>
+          <label>
+            {t.maxDrawdownPct}
+            <input
+              type="number"
+              min={0}
+              step="any"
+              placeholder="10"
+              value={settings.maxDrawdownFromPeakPct ?? ''}
+              onChange={(e) =>
+                onSettingsChange({
+                  ...settings,
+                  maxDrawdownFromPeakPct: parseFloat(e.target.value) || undefined,
+                })
+              }
+            />
+          </label>
+        </div>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={settings.alertOnThresholds !== false}
+            onChange={(e) =>
+              onSettingsChange({
+                ...settings,
+                alertOnThresholds: e.target.checked,
+                alertOnLossLimit: e.target.checked,
+              })
+            }
+          />
+          {t.alertOnThresholds}
+        </label>
+        </div>
+        )}
+      </section>
+
+      <section className="panel settings-section">
         <h3>{t.notificationsTitle}</h3>
         <label className="check-row">
           <input
