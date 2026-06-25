@@ -276,6 +276,15 @@ async function startBridge() {
   process.env.TJ_BRIDGE_DIR = bridgeDataDir()
   process.env.TJ_BRIDGE_PORT = String(BRIDGE_PORT)
 
+  try {
+    await waitForHttp(`http://127.0.0.1:${BRIDGE_PORT}/api/status`, 2000)
+    console.log('[bridge] Reusing existing bridge on port', BRIDGE_PORT)
+    bridgeClose = null
+    return { port: BRIDGE_PORT, close: async () => {} }
+  } catch {
+    /* start new bridge below */
+  }
+
   const serverPath = path.join(unpackedPath('bridge'), 'server.mjs')
   if (!fs.existsSync(serverPath)) {
     throw new Error(`No se encuentra el puente: ${serverPath}`)
@@ -627,7 +636,16 @@ function createMainWindow() {
 
   mainWindow.loadURL(isDevMode ? 'http://127.0.0.1:5173' : APP_URL)
 
+  const forceShowTimer = setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      console.warn('[app] Showing main window after splash timeout')
+      if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close()
+      mainWindow.show()
+    }
+  }, 25000)
+
   mainWindow.once('ready-to-show', () => {
+    clearTimeout(forceShowTimer)
     if (splashWindow && !splashWindow.isDestroyed()) splashWindow.close()
     mainWindow.show()
     try {

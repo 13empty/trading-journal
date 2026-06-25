@@ -19,6 +19,14 @@ export function startBridge(options = {}) {
   const DATA_FILE = path.join(bridgeDir(), 'bridge-state.json')
 
   let state = createEmptyState()
+  let syncCache = null
+  let syncCacheVersion = -1
+  let stateVersion = 0
+
+  function invalidateSyncCache() {
+    syncCache = null
+    stateVersion += 1
+  }
 
   function loadState() {
     try {
@@ -28,10 +36,28 @@ export function startBridge(options = {}) {
     } catch {
       state = createEmptyState()
     }
+    invalidateSyncCache()
   }
 
   function saveState() {
+    invalidateSyncCache()
     fs.writeFileSync(DATA_FILE, JSON.stringify(state, null, 2), 'utf8')
+  }
+
+  function getSyncBody() {
+    if (syncCache && syncCacheVersion === stateVersion) return syncCache
+    syncCache = JSON.stringify({
+      trades: state.trades,
+      cashMovements: state.cashMovements,
+      balance: state.balance,
+      equity: state.equity,
+      openPositions: Object.values(state.openPositions || {}),
+      account: state.account,
+      lastSeen: state.lastSeen,
+      tradeCount: state.trades.length,
+    })
+    syncCacheVersion = stateVersion
+    return syncCache
   }
 
   function fullSyncPayload(s) {
@@ -153,16 +179,14 @@ export function startBridge(options = {}) {
       }
 
       if (req.method === 'GET' && url.pathname === '/api/sync') {
-        return json(res, 200, {
-          trades: state.trades,
-          cashMovements: state.cashMovements,
-          balance: state.balance,
-          equity: state.equity,
-          openPositions: Object.values(state.openPositions || {}),
-          account: state.account,
-          lastSeen: state.lastSeen,
-          tradeCount: state.trades.length,
+        res.writeHead(200, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
         })
+        res.end(getSyncBody())
+        return
       }
 
       if (req.method === 'POST' && url.pathname === '/api/event') {

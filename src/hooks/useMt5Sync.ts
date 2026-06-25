@@ -32,6 +32,11 @@ interface UseMt5SyncOptions {
 
 type RawTrade = Trade & { side?: string; id?: string }
 
+const STATUS_POLL_MS = 5000
+const FULL_SYNC_FALLBACK_MS = 20_000
+const FULL_SYNC_BACKUP_MS = 60_000
+const MIN_FULL_APPLY_MS = 4000
+
 function normalizeBridgeTrades(raw: Trade[], account?: string | null): Trade[] {
   return raw.map((t) => {
     const r = t as RawTrade
@@ -64,6 +69,19 @@ function normalizeBridgeCash(raw: CashMovement[]): CashMovement[] {
   }))
 }
 
+function applyBalanceIfChanged(
+  status: Mt5Status,
+  onSettings: (s: AppSettings) => void,
+  settingsRef: React.MutableRefObject<AppSettings>,
+) {
+  if (status.balance == null && status.equity == null) return
+  const cur = settingsRef.current
+  const brokerBalance = status.balance ?? cur.brokerBalance
+  const brokerEquity = status.equity ?? cur.brokerEquity
+  if (brokerBalance === cur.brokerBalance && brokerEquity === cur.brokerEquity) return
+  onSettings({ ...cur, brokerBalance, brokerEquity })
+}
+
 export function useMt5Sync({
   trades,
   cash,
@@ -85,6 +103,10 @@ export function useMt5Sync({
   const tradesRef = useRef(trades)
   const cashRef = useRef(cash)
   const settingsRef = useRef(settings)
+  const syncInFlight = useRef(false)
+  const wsLive = useRef(false)
+  const lastFullApplyAt = useRef(0)
+  const initialSyncDone = useRef(false)
 
   tradesRef.current = trades
   cashRef.current = cash
@@ -127,7 +149,6 @@ export function useMt5Sync({
         settingsNext.knownAccounts = [...known]
       }
 
-      setBridgeTrades(tradeList)
       if (tradesChanged) onTrades(mergedTrades)
       onCash(cashList)
       onSettings(settingsNext)
@@ -151,8 +172,11 @@ export function useMt5Sync({
       }
 
       if (isFull) {
+        const now = Date.now()
+        if (now - lastFullApplyAt.current < MIN_FULL_APPLY_MS) return
+        lastFullApplyAt.current = now
         applyFullBridgeState(payload)
-        setLastSyncAt(Date.now())
+        setLastSyncAt(now)
         return
       }
 
@@ -186,12 +210,15 @@ export function useMt5Sync({
   )
 
   const pullFullSync = useCallback(async () => {
+    if (syncInFlight.current) return false
+    syncInFlight.current = true
     try {
       const data = await fetchMt5Sync()
       if (!data) {
         setSyncError(getTranslations(language).mt5.bridgeOfflineError)
         return false
       }
+      lastFullApplyAt.current = Date.now()
       applyPayload({
         trades: data.trades ?? [],
         cashMovements: data.cashMovements ?? [],
@@ -206,6 +233,8 @@ export function useMt5Sync({
     } catch (e) {
       setSyncError(e instanceof Error ? e.message : 'Error de sync')
       return false
+    } finally {
+      syncInFlight.current = false
     }
   }, [applyPayload, language])
 
@@ -213,44 +242,74 @@ export function useMt5Sync({
     setVerifying(true)
     try {
       const status = await fetchMt5Status()
-      setBridgeOnline(status !== null)
+      const online = status !== null
+      setBridgeOnline(online)
       setMt5Status(status)
       if (status?.tradeCount != null) setBridgeTradeCount(status.tradeCount)
+      if (status) applyBalanceIfChanged(status, onSettings, settingsRef)
       if (status !== null) await reloadBridgeFromDisk()
       await pullFullSync()
     } finally {
       setVerifying(false)
     }
-  }, [pullFullSync])
+  }, [pullFullSync, onSettings])
 
   useEffect(() => {
+    let cancelled = false
+
     const poll = async () => {
       const status = await fetchMt5Status()
-      setBridgeOnline(status !== null)
-      setMt5Status(status)
-      if (status?.tradeCount != null) setBridgeTradeCount(status.tradeCount)
-      if (status?.balance != null || status?.equity != null) {
-        onSettings({
-          ...settingsRef.current,
-          brokerBalance: status.balance ?? settingsRef.current.brokerBalance,
-          brokerEquity: status.equity ?? settingsRef.current.brokerEquity,
-        })
+      if (cancelled) return
+      const online = status !== null
+      setBridgeOnline((prev) => (prev === online ? prev : online))
+      if (status) {
+        setMt5Status(status)
+        if (status.tradeCount != null) setBridgeTradeCount(status.tradeCount)
+        applyBalanceIfChanged(status, onSettings, settingsRef)
       }
     }
+
     poll()
-    const id = setInterval(poll, 2000)
-    return () => clearInterval(id)
+    const id = setInterval(poll, STATUS_POLL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
   }, [onSettings])
 
   useEffect(() => {
-    if (!bridgeOnline) return
-    void pullFullSync()
-    const id = setInterval(() => void pullFullSync(), 3000)
-    return () => clearInterval(id)
+    if (!bridgeOnline) {
+      initialSyncDone.current = false
+      return
+    }
+
+    if (!initialSyncDone.current) {
+      initialSyncDone.current = true
+      void pullFullSync()
+    }
+
+    const fallback = setInterval(() => {
+      if (wsLive.current) return
+      void pullFullSync()
+    }, FULL_SYNC_FALLBACK_MS)
+
+    const backup = setInterval(() => {
+      void pullFullSync()
+    }, FULL_SYNC_BACKUP_MS)
+
+    return () => {
+      clearInterval(fallback)
+      clearInterval(backup)
+    }
   }, [bridgeOnline, pullFullSync])
 
   useEffect(() => {
-    return connectMt5WebSocket((payload) => applyPayload(payload))
+    return connectMt5WebSocket(
+      (payload) => applyPayload(payload),
+      (connected) => {
+        wsLive.current = connected
+      },
+    )
   }, [applyPayload])
 
   const floatingPnl = openPositions.reduce((s, p) => s + p.profit + (p.swap ?? 0), 0)
