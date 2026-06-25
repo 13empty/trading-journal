@@ -18,16 +18,28 @@ function tradesChronological(trades: Trade[]): Trade[] {
 
 export function currentDrawdownFromPeak(
   curve: EquityPoint[],
-  liveBalance?: number | null,
+  extraTodayPnl = 0,
 ): { pct: number; amount: number; peak: number; current: number } {
-  if (curve.length === 0) {
-    return { pct: 0, amount: 0, peak: 0, current: liveBalance ?? 0 }
-  }
-  const peak = Math.max(...curve.map((p) => p.balance))
-  const current = liveBalance ?? curve[curve.length - 1].balance
+  const base = curve.length > 0 ? curve[curve.length - 1].balance : 0
+  const current = base + extraTodayPnl
+  let peak = 0
+  for (const pt of curve) peak = Math.max(peak, pt.balance)
+  peak = Math.max(peak, current)
   const amount = Math.max(0, peak - current)
   const pct = peak > 0 ? (amount / peak) * 100 : 0
   return { pct, amount, peak, current }
+}
+
+/** Closed PnL for today is already in the equity curve; add only what is still missing (usually floating). */
+export function todayPnlAdjustmentForCurve(
+  curve: EquityPoint[],
+  todayKey: string,
+  todayDay?: { pnl: number; livePnl?: number },
+): number {
+  if (!todayDay) return 0
+  const todayInCurve = curve.some((p) => p.date === todayKey)
+  if (todayInCurve) return todayDay.livePnl ?? 0
+  return todayDay.pnl
 }
 
 export function detectRevengeRisk(
@@ -49,7 +61,13 @@ export function detectRevengeRisk(
   if (openCount > 0 && sorted.length > 0) {
     const last = sorted[sorted.length - 1]
     if (last.pnl < 0) {
-      return { risky: true, openAfterLoss: true }
+      const t0 = tradeCloseMs(last)
+      if (t0 != null) {
+        const gapMin = (Date.now() - t0) / 60_000
+        if (gapMin < cooldownMin) {
+          return { risky: true, openAfterLoss: true, minutesAfterLoss: Math.round(gapMin) }
+        }
+      }
     }
   }
   return { risky: false }
@@ -72,17 +90,18 @@ export function evaluateThresholdRules(input: {
   dayPnl: number
   dayTrades: Trade[]
   equityCurve: EquityPoint[]
-  liveBalance?: number | null
+  todayKey?: string
+  todayDay?: { pnl: number; livePnl?: number }
   openCount?: number
 }): ThresholdRuleState[] {
   if (!isTradingRulesEnabled(input.settings)) {
     return []
   }
-  const { settings, dayPnl, dayTrades, equityCurve, liveBalance, openCount = 0 } = input
+  const { settings, dayPnl, dayTrades, equityCurve, todayKey, todayDay, openCount = 0 } = input
   const rules: ThresholdRuleState[] = []
 
   if (settings.dailyLossLimit != null && settings.dailyLossLimit > 0) {
-    const limit = Math.abs(settings.dailyLossLimit)
+    const limit = Math.abs(Number(settings.dailyLossLimit))
     const hit = dayPnl <= -limit
     rules.push({
       id: 'daily_loss',
@@ -123,7 +142,9 @@ export function evaluateThresholdRules(input: {
 
   const ddLimit = settings.maxDrawdownFromPeakPct ?? DEFAULT_DRAWDOWN_PCT
   if (ddLimit > 0 && equityCurve.length > 0) {
-    const dd = currentDrawdownFromPeak(equityCurve, liveBalance)
+    const extraToday =
+      todayKey && todayDay ? todayPnlAdjustmentForCurve(equityCurve, todayKey, todayDay) : 0
+    const dd = currentDrawdownFromPeak(equityCurve, extraToday)
     rules.push({
       id: 'drawdown_peak',
       status: dd.pct >= ddLimit && dd.amount > 0 ? 'warn' : 'ok',

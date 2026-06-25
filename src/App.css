@@ -1109,8 +1109,12 @@ font-weight:600}
 .threshold-settings-fields{
 margin-top:.25rem}
 .goal-alert{background:color-mix(in srgb,var(--red) 15%,var(--surface));border:1px solid color-mix(in srgb,var(--red) 45%,transparent);color:var(--text);padding:.65rem .85rem;border-radius:8px;margin-bottom:.75rem;font-size:.85rem}
+.threshold-interrupt-rules{
+  opacity:.9;
+  font-weight:500;
+}
 .threshold-interrupt{
-background:color-mix(in srgb,var(--red) 22%,#1a0a0a);
+  background:color-mix(in srgb,var(--red) 22%,#1a0a0a);
 border:2px solid color-mix(in srgb,var(--red) 65%,transparent);
 color:var(--text);
 padding:.7rem .9rem;

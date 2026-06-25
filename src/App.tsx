@@ -52,7 +52,7 @@ import {
   saveTradeMetaMap,
 } from './lib/journalStorage'
 import type { PeriodView } from './types/trade'
-import type { DailyNote, TradeMeta } from './types/journal'
+import type { DailyNote, TradeMeta, ThresholdRuleId } from './types/journal'
 import {
   alertsEnabled,
   evaluateThresholdRules,
@@ -82,6 +82,13 @@ const emptyTrade = (date: string): Omit<Trade, 'id'> => ({
   fees: 0,
   notes: '',
 })
+
+const THRESHOLD_LABEL_KEY: Record<ThresholdRuleId, keyof ReturnType<typeof getTranslations>['thresholds']> = {
+  daily_loss: 'dailyLoss',
+  max_trades: 'maxTrades',
+  revenge_risk: 'revengeRisk',
+  drawdown_peak: 'drawdownPeak',
+}
 
 function App() {
   const [trades, setTrades] = useState<Trade[]>(() => loadTrades())
@@ -343,7 +350,8 @@ function App() {
         dayPnl: selectedDay?.pnl ?? 0,
         dayTrades: dayTrades,
         equityCurve,
-        liveBalance: selectedDate === todayKey ? displayBalance : null,
+        todayKey,
+        todayDay: selectedDate === todayKey ? selectedDay : undefined,
         openCount: selectedDate === todayKey ? (selectedDay?.openCount ?? 0) : 0,
       }),
     [
@@ -351,7 +359,6 @@ function App() {
       selectedDay,
       dayTrades,
       equityCurve,
-      displayBalance,
       selectedDate,
       todayKey,
     ],
@@ -364,14 +371,28 @@ function App() {
         dayPnl: todayDay?.pnl ?? 0,
         dayTrades: todayDayTrades,
         equityCurve,
-        liveBalance: displayBalance,
+        todayKey,
+        todayDay,
         openCount: todayDay?.openCount ?? 0,
       }),
-    [settings, todayDay, todayDayTrades, equityCurve, displayBalance],
+    [settings, todayDay, todayDayTrades, equityCurve, todayKey],
   )
 
   const todayRuleBreach = isTradingRulesEnabled(settings) && hasThresholdWarning(todayThresholdRules)
+  const todayBreachedRules = useMemo(
+    () => todayThresholdRules.filter((r) => r.status === 'warn'),
+    [todayThresholdRules],
+  )
   const thresholdNotified = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    const active = new Set(
+      todayThresholdRules.filter((r) => r.status === 'warn').map((r) => `${todayKey}:${r.id}`),
+    )
+    for (const key of thresholdNotified.current) {
+      if (!active.has(key)) thresholdNotified.current.delete(key)
+    }
+  }, [todayThresholdRules, todayKey])
 
   useEffect(() => {
     if (!alertsEnabled(settings) || !todayRuleBreach) return
@@ -676,6 +697,12 @@ function App() {
         {todayRuleBreach && (
           <div className="threshold-interrupt" role="alert">
             {t.thresholds.interruptBanner}
+            {todayBreachedRules.length > 0 && (
+              <span className="threshold-interrupt-rules">
+                {' '}
+                ({todayBreachedRules.map((r) => t.thresholds[THRESHOLD_LABEL_KEY[r.id]]).join(' · ')})
+              </span>
+            )}
           </div>
         )}
 
