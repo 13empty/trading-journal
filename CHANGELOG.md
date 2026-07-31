@@ -7,6 +7,41 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.1] — 2026-07-31
+
+### Added / Añadido
+
+- **ES:** Metas de beneficio (día / semana / mes) con barras de progreso y estado “Alcanzada”  
+  **EN:** Profit goals (day / week / month) with progress bars and “Reached” state
+- **ES:** Reglas de trading configurables con alertas PARAR y banner que indica qué regla se activó  
+  **EN:** Configurable trading rules with STOP alerts and banner showing which rule fired
+- **ES:** Consejo de riesgo semanal en Analíticas (promedio, tendencia, sugerencia subir/mantener/bajar)  
+  **EN:** Weekly risk advice in Analytics (average, trend, increase/hold/reduce suggestion)
+- **ES:** Resumen últimos 14 días en pestaña Día (total, %, prom./día, días +/−, mejor día)  
+  **EN:** Last-14-days summary on Day tab (total, %, avg/day, win/loss days, best day)
+- **ES:** Notas del día en modal; chips de estado compactos; Insights colapsables  
+  **EN:** Day notes modal; compact status chips; collapsible Insights section
+- **ES:** Paneles en Analíticas: finanzas de cuenta, resumen por período, búsqueda global  
+  **EN:** Analytics panels: account finance, period summary, global trade search
+
+### Changed / Cambiado
+
+- **ES:** Pestaña Día más limpia: hero primero, sin curva grande; finanzas/búsqueda en Analíticas  
+  **EN:** Cleaner Day tab: hero first, no large chart; finance/search moved to Analytics
+- **ES:** Sidebar: calendario compacto, leyenda colapsable, panel MT5 reducido, botones en grid  
+  **EN:** Sidebar: compact calendar, collapsible legend, slimmer MT5 panel, grid action buttons
+- **ES:** Meses en español/portugués con minúscula inicial en vistas mensuales  
+  **EN:** Spanish/Portuguese month names with lowercase in monthly views
+
+### Fixed / Corregido
+
+- **ES:** Alerta “Rule Breached” desaparece al recuperar límites o cambiar configuración  
+  **EN:** “Rule Breached” alert clears when limits recover or settings change
+- **ES:** Sync MT5 ya no entra en bucles; splash de carga no se queda colgado  
+  **EN:** MT5 sync no longer loops; loading splash no longer stuck
+
+---
+
 ## [1.2.0] — 2026-06-03
 
 ### Added / Añadido

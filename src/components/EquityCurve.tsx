@@ -4,6 +4,7 @@ interface Props {
   points: EquityPoint[]
   height?: number
   compact?: boolean
+  showLabels?: boolean
 }
 
 type Pt = { x: number; y: number }
@@ -68,7 +69,7 @@ function areaPath(points: Pt[], baseY: number): string {
   return `${monotonePath(points)} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`
 }
 
-export function EquityCurve({ points, height = 112, compact = false }: Props) {
+export function EquityCurve({ points, height = 112, compact = false, showLabels }: Props) {
   if (points.length < 2) {
     return <p className="empty chart-empty">—</p>
   }
@@ -99,6 +100,7 @@ export function EquityCurve({ points, height = 112, compact = false }: Props) {
   const trend = endVal >= startVal ? 'up' : 'down'
   const lineD = monotonePath(xy)
   const areaD = areaPath(xy, baseY)
+  const labelsVisible = showLabels ?? !compact
 
   return (
     <div className="equity-curve-wrap">
@@ -121,7 +123,7 @@ export function EquityCurve({ points, height = 112, compact = false }: Props) {
         <circle className="eq-dot-ring" cx={last.x} cy={last.y} r="5" />
         <circle className="eq-dot" cx={last.x} cy={last.y} r="2.25" />
       </svg>
-      {!compact && (
+      {!labelsVisible ? null : (
         <div className="equity-labels">
           <span>{formatLabel(startVal)}</span>
           <span className="eq-label-end">{formatEndLabel(endVal)}</span>

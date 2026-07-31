@@ -20,6 +20,7 @@ interface Props {
   syncError?: string | null
   mt5: Translations['mt5']
   dateLocale: Locale
+  compact?: boolean
 }
 
 export function Mt5StatusPanel({
@@ -36,47 +37,84 @@ export function Mt5StatusPanel({
   syncError,
   mt5,
   dateLocale,
+  compact = false,
 }: Props) {
   const tf = interpolate
   const state = !bridgeOnline ? 'offline' : mt5Connected ? 'connected' : 'waiting'
 
   return (
-    <div className={`mt5-panel ${state}`}>
+    <div className={`mt5-panel ${state}${compact ? ' compact' : ''}`}>
       <div className="mt5-status-bar" aria-hidden="true" />
       <div className="mt5-head">
         <span className={`mt5-dot ${state === 'connected' ? 'on' : state === 'waiting' ? 'wait' : 'off'}`} />
         <strong>{mt5.title}</strong>
+        {compact && state === 'connected' && lastSyncAt && (
+          <span className="mt5-sync-mini">
+            {tf(mt5.lastSync, {
+              time: formatDistanceToNow(lastSyncAt, { addSuffix: true, locale: dateLocale }),
+            })}
+          </span>
+        )}
       </div>
 
       {state === 'offline' && (
         <>
           <p className="mt5-msg">{mt5.bridgeOff}</p>
-          <ol className="mt5-checklist">
-            <li>
-              {mt5.bridgeOffStep1.split(':')[0]}: <code>npm run bridge</code>
-            </li>
-            <li>
-              {mt5.bridgeOffStep2.split(':')[0]}: <code>npm run dev:all</code>
-            </li>
-          </ol>
+          {!compact && (
+            <ol className="mt5-checklist">
+              <li>
+                {mt5.bridgeOffStep1.split(':')[0]}: <code>npm run bridge</code>
+              </li>
+              <li>
+                {mt5.bridgeOffStep2.split(':')[0]}: <code>npm run dev:all</code>
+              </li>
+            </ol>
+          )}
         </>
       )}
 
       {state === 'waiting' && (
         <>
           <p className="mt5-msg">{mt5.waiting}</p>
-          <ol className="mt5-checklist">
-            <li>{mt5.waitingStep1}</li>
-            <li>{mt5.waitingStep2}</li>
-            <li>{mt5.waitingStep3}</li>
-            <li>
-              Log: <code>{mt5.waitingStep4.replace('Log: ', '')}</code>
-            </li>
-          </ol>
+          {!compact && (
+            <ol className="mt5-checklist">
+              <li>{mt5.waitingStep1}</li>
+              <li>{mt5.waitingStep2}</li>
+              <li>{mt5.waitingStep3}</li>
+            </ol>
+          )}
         </>
       )}
 
-      {state === 'connected' && (
+      {state === 'connected' && compact && (
+        <>
+          <p className="mt5-line-compact">
+            <span className="mt5-account">{status?.account ?? '—'}</span>
+            <span className="hint-text">
+              {' '}
+              · {tradeCount} trades
+              {usingLiveTrades ? ` · ${liveTradeCount} live` : ''}
+            </span>
+          </p>
+          {status?.balance != null && (
+            <p className="mt5-line-compact mt5-balances">
+              <strong>${status.balance.toFixed(2)}</strong>
+              {status.equity != null && (
+                <span className="hint-text"> · Eq ${status.equity.toFixed(2)}</span>
+              )}
+              {openPositions.length > 0 && (
+                <span className={pnlClass(floatingPnl)}>
+                  {' '}
+                  · {formatMoney(floatingPnl)} flot.
+                </span>
+              )}
+            </p>
+          )}
+          {bridgeOnline && !usingLiveTrades && <p className="mt5-msg warn">{mt5.loadingTrades}</p>}
+        </>
+      )}
+
+      {state === 'connected' && !compact && (
         <>
           <p className="mt5-msg">
             {tf(mt5.accountTrades, { account: status?.account ?? '—', count: tradeCount })}
@@ -111,7 +149,7 @@ export function Mt5StatusPanel({
 
       {syncError && <p className="mt5-msg warn">{syncError}</p>}
 
-      {lastSyncAt && (
+      {!compact && lastSyncAt && (
         <p className="mt5-sync">
           {tf(mt5.lastSync, {
             time: formatDistanceToNow(lastSyncAt, { addSuffix: true, locale: dateLocale }),

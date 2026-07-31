@@ -2,7 +2,7 @@
 
 **Diario de trading con sincronización MetaTrader 5 · Desktop app for Windows**
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue)](package.json)
+[![Version](https://img.shields.io/badge/version-1.2.1-blue)](package.json)
 [![Stack](https://img.shields.io/badge/stack-React%20%2B%20Electron%20%2B%20Python-61dafb)](package.json)
 
 ---
@@ -15,10 +15,11 @@ Aplicación de escritorio para llevar un **diario de trading** con calendario Pn
 
 | Módulo | Descripción |
 |--------|-------------|
-| **Calendario** | PnL por día en **$**, **%** o **ambos**; totales semanales y mensuales |
-| **Vista día** | Hero PnL, curva de equity (PnL acumulado), trades, notas, depósitos/retiros |
-| **MT5 sync** | Trades cerrados, posiciones abiertas, saldo y equity cada ~2 s |
-| **Analíticas** | Expectancy, profit factor, drawdown, rachas, por símbolo, export PDF |
+| **Calendario** | PnL por día en **$**, **%** o **ambos**; totales semanales y mensuales; leyenda compacta |
+| **Vista día** | Hero PnL, resumen últimos 14 días (total, prom./día, días +/−), trades, notas en modal |
+| **Metas y reglas** | Objetivos diarios/semanales/mensuales; reglas de trading con alertas PARAR |
+| **MT5 sync** | Trades cerrados, posiciones abiertas, saldo y equity cada ~2 s; panel compacto en sidebar |
+| **Analíticas** | Expectancy, profit factor, drawdown, rachas, riesgo semanal, finanzas de cuenta, búsqueda |
 | **Proyección** | Escenarios 15–90 días según racha actual |
 | **Búsqueda** | Buscar trades y saltar al día en el calendario |
 | **i18n** | Español, inglés, portugués |
@@ -92,10 +93,11 @@ Desktop **trading journal** with a PnL calendar, daily notes, analytics, and liv
 
 | Module | Description |
 |--------|-------------|
-| **Calendar** | Daily PnL in **$**, **%**, or **both**; weekly and monthly totals |
-| **Day view** | PnL hero, equity curve (cumulative PnL), trades, notes, cash flows |
-| **MT5 sync** | Closed trades, open positions, balance & equity ~every 2s |
-| **Analytics** | Expectancy, profit factor, drawdown, streaks, by symbol, PDF export |
+| **Calendar** | Daily PnL in **$**, **%**, or **both**; weekly/monthly totals; compact legend |
+| **Day view** | PnL hero, last-14-days summary (total, avg/day, win/loss days), trades, notes modal |
+| **Goals & rules** | Daily/weekly/monthly profit goals; trading rules with STOP alerts |
+| **MT5 sync** | Closed trades, open positions, balance & equity ~every 2s; compact sidebar panel |
+| **Analytics** | Expectancy, profit factor, drawdown, streaks, weekly risk advice, account finance, search |
 | **Projection** | 15–90 day scenarios from current streak |
 | **Search** | Find trades and jump to calendar day |
 | **i18n** | Spanish, English, Portuguese |

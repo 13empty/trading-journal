@@ -193,6 +193,37 @@ export function buildEquityCurve(activities: DayActivity[]): EquityPoint[] {
     })
 }
 
+export interface RecentEquitySummary {
+  dayCount: number
+  totalPnl: number
+  periodPct: number | null
+  avgDailyPnl: number
+  greenDays: number
+  redDays: number
+  bestDayPnl: number
+  bestDayDate: string
+}
+
+export function summarizeRecentEquity(points: EquityPoint[]): RecentEquitySummary | null {
+  if (points.length === 0) return null
+
+  const totalPnl = points.reduce((sum, p) => sum + p.pnl, 0)
+  const startEquity = points[0].balance - points[0].pnl
+  const periodPct = startEquity !== 0 ? (totalPnl / Math.abs(startEquity)) * 100 : null
+  const best = points.reduce((a, b) => (b.pnl > a.pnl ? b : a), points[0])
+
+  return {
+    dayCount: points.length,
+    totalPnl,
+    periodPct,
+    avgDailyPnl: totalPnl / points.length,
+    greenDays: points.filter((p) => p.pnl > 0).length,
+    redDays: points.filter((p) => p.pnl < 0).length,
+    bestDayPnl: best.pnl,
+    bestDayDate: best.date,
+  }
+}
+
 export function computeDrawdown(curve: EquityPoint[]): DrawdownInfo {
   if (curve.length === 0) {
     return {

@@ -62,3 +62,32 @@ MetaTrader 5  →  mt5-sync.exe (Python)  →  bridge/server.mjs  →  React UI
 | Antivirus blocks .exe | Allow `release/Trading-Journal.exe` |
 
 Sync log: `%APPDATA%\trading-journal\mt5-sync.log`
+
+## 4. UI overview (v1.2.1)
+
+### Sidebar (calendar)
+
+- Compact month navigation with month total and inline **$ / % / $+%** toggle.
+- Smaller cells; collapsible legend (Gain / Loss → “More” for badges and details).
+- Compact **MetaTrader 5** panel: account, balance, equity, last sync, **Sync now**.
+- Buttons: **Day summary** (primary), **Import Excel** and **Deposit / Withdrawal** in a row.
+
+### Day tab
+
+- **Hero:** day PnL, balance, trades, win rate.
+- **14-day summary:** period total, %, avg/day, win/loss days, best day, mini chart with labels.
+- **Chips:** goals at ≥80% or reached; rules only on STOP.
+- **Insights** (collapsible): goals and rules when configured.
+- **Day notes** in a modal (button on trades panel).
+
+### Analytics
+
+- **Profit goals** and **trading rules** (also in Settings).
+- **Weekly risk:** average, last 4 weeks, suggested risk size.
+- Account finance, period summary, and global trade search.
+
+### Rules & alerts
+
+- In **Settings → Trading rules**, set limits (e.g. max daily loss).
+- If a rule is breached today, a red banner shows which rule fired.
+- The alert clears when you are back within limits or change settings.

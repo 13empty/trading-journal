@@ -4,6 +4,7 @@ import type { DayActivity } from '../types/account'
 import type { Translations } from '../i18n/types'
 import { formatMoney, pnlClass } from '../lib/aggregations'
 import { parseLocalDateKey } from '../lib/mt5Date'
+import { DayRecentSummary } from './DayRecentSummary'
 import { EquityCurve } from './EquityCurve'
 import type { EquityPoint } from '../types/journal'
 
@@ -19,7 +20,7 @@ interface Props {
   subtitle?: string
   hideChart?: boolean
   showChart?: boolean
-  showSparkline?: boolean
+  showRecentSummary?: boolean
   t: Translations['dayHero']
 }
 
@@ -35,14 +36,13 @@ export function DayHero({
   subtitle,
   hideChart = false,
   showChart = true,
-  showSparkline = false,
+  showRecentSummary = false,
   t,
 }: Props) {
   const pnl = selectedDay?.pnl ?? 0
   const hasLive = (selectedDay?.openCount ?? 0) > 0
   const chartVisible = showChart && !hideChart
-  const sparkPoints = equityPoints.slice(-14)
-  const sparklineVisible = showSparkline && !hideChart && !chartVisible && sparkPoints.length >= 2
+  const recentVisible = showRecentSummary && !hideChart && !chartVisible
 
   return (
     <section className="panel day-hero">
@@ -87,11 +87,8 @@ export function DayHero({
         </div>
       )}
 
-      {sparklineVisible && (
-        <div className="day-hero-sparkline">
-          <span className="day-sparkline-label">{t.sparkline}</span>
-          <EquityCurve points={sparkPoints} height={48} compact />
-        </div>
+      {recentVisible && (
+        <DayRecentSummary points={equityPoints} dateLocale={dateLocale} t={t} />
       )}
     </section>
   )

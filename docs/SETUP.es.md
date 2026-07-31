@@ -62,3 +62,32 @@ MetaTrader 5  →  mt5-sync.exe (Python)  →  bridge/server.mjs  →  React UI
 | Antivirus bloquea .exe | Añade excepción para `release/Trading-Journal.exe` |
 
 Log de sync: `%APPDATA%\trading-journal\mt5-sync.log`
+
+## 4. Interfaz (v1.2.1)
+
+### Sidebar (calendario)
+
+- Navegación de mes compacta con total del mes y toggle **$ / % / $+%** integrado.
+- Celdas más pequeñas; leyenda colapsable (Ganancia / Pérdida → “Más” para badges y detalles).
+- Panel **MetaTrader 5** compacto: cuenta, saldo, equity, última sync y **Sincronizar ahora**.
+- Botones: **Resumen del día** (principal), **Importar Excel** y **Depósito / Retiro** en fila.
+
+### Pestaña Día
+
+- **Hero:** PnL del día, saldo, trades, win rate.
+- **Resumen 14 días:** total del periodo, %, promedio/día, días positivos/negativos, mejor día y mini curva con valores.
+- **Chips:** metas al ≥80 % o alcanzadas; reglas solo si hay PARAR.
+- **Insights** (colapsable): metas y reglas si están configuradas.
+- **Notas del día** en modal (botón en panel de trades).
+
+### Analíticas
+
+- **Metas de beneficio** y **reglas de trading** (también en Ajustes).
+- **Riesgo semanal:** promedio, últimas 4 semanas, recomendación de tamaño de riesgo.
+- Finanzas de cuenta, resumen por período y búsqueda global de trades.
+
+### Reglas y alertas
+
+- En **Ajustes → Reglas de trading** define límites (p. ej. pérdida diaria máxima).
+- Si se incumple una regla hoy, aparece banner rojo con el nombre de la regla.
+- La alerta se quita sola si vuelves a estar dentro del límite o cambias la configuración.

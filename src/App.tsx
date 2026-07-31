@@ -620,6 +620,7 @@ function App() {
           onSyncNow={() => void verifyAll()}
           mt5={t.mt5}
           dateLocale={dateLocale}
+          compact
         />
 
         <div className="sidebar-actions">
@@ -767,7 +768,7 @@ function App() {
               dateLocale={dateLocale}
               subtitle={dayHeroSubtitle}
               showChart={false}
-              showSparkline
+              showRecentSummary
               hideChart={selectedDate === todayKey && todayRuleBreach}
               t={t.dayHero}
             />

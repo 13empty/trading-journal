@@ -209,44 +209,22 @@ export function Calendar({
     <div className={`calendar calendar-pnl-${displayMode}`}>
 
       <div className="calendar-nav">
-
-        <button type="button" onClick={() => onMonthChange(subMonths(month, 1))} aria-label={calendar.prevMonth}>
-
+        <button type="button" className="calendar-nav-btn" onClick={() => onMonthChange(subMonths(month, 1))} aria-label={calendar.prevMonth}>
           ‹
-
         </button>
 
         <div className="calendar-nav-center">
-
           <span className="calendar-title">{formatDisplayDate(month, 'MMMM yyyy', dateLocale)}</span>
-
           {monthPnl.hasData && (
-
             <span className={`calendar-month-total ${pnlClass(monthPnl.total)}`}>
-
-              {calendar.monthTotal}:{' '}
               {displayMode === 'dollar' && formatMoney(monthPnl.total)}
-              {displayMode === 'percent' &&
-                (monthPct != null ? formatCompactPercent(monthPct) : '—')}
+              {displayMode === 'percent' && (monthPct != null ? formatCompactPercent(monthPct) : '—')}
               {displayMode === 'both' &&
                 `${formatMoney(monthPnl.total)} · ${monthPct != null ? formatCompactPercent(monthPct) : '—'}`}
-
             </span>
-
           )}
-
         </div>
 
-        <button type="button" onClick={() => onMonthChange(addMonths(month, 1))} aria-label={calendar.nextMonth}>
-
-          ›
-
-        </button>
-
-      </div>
-
-      <div className="calendar-display-bar">
-        <span className="calendar-display-label">{calendar.displayModeLabel}</span>
         <div className="calendar-mode-toggle" role="group" aria-label={calendar.displayModeLabel}>
           {displayModes.map((opt) => (
             <button
@@ -261,6 +239,10 @@ export function Calendar({
             </button>
           ))}
         </div>
+
+        <button type="button" className="calendar-nav-btn" onClick={() => onMonthChange(addMonths(month, 1))} aria-label={calendar.nextMonth}>
+          ›
+        </button>
       </div>
 
       <div className="calendar-grid-wrap">
@@ -454,89 +436,34 @@ export function Calendar({
       </table>
       </div>
 
-      <div className="calendar-legend">
-
-        <span>
-
-          <i className="dot positive" /> {calendar.legendGain}
-
-        </span>
-
-        <span>
-
-          <i className="dot negative" /> {calendar.legendLoss}
-
-        </span>
-
-        {monthBadges.size > 0 ? (
-
-          <span>
-
-            {monthBadges.has('D') && <span className="dep">D</span>}
-
-            {monthBadges.has('W') && (
-
-              <>
-
-                {monthBadges.has('D') && ' · '}
-
-                <span className="wit">W</span>
-
-              </>
-
-            )}
-
-            {monthBadges.has('R') && (
-
-              <>
-
-                {(monthBadges.has('D') || monthBadges.has('W')) && ' · '}
-
-                <span className="tx-out">R</span>
-
-              </>
-
-            )}
-
-            {monthBadges.has('L') && (
-
-              <>
-
-                {(monthBadges.has('D') || monthBadges.has('W') || monthBadges.has('R')) && ' · '}
-
-                <span className="tx-in">L</span>
-
-              </>
-
-            )}
-
-            {monthBadges.has('F') && (
-
-              <>
-
-                {monthBadges.size > 1 && ' · '}
-
-                <span className="fee">F</span>
-
-              </>
-
-            )}{' '}
-
-            {calendar.legendCashDynamic}
-
+      <details className="calendar-legend-details">
+        <summary className="calendar-legend-summary">
+          <span className="calendar-legend-pill">
+            <i className="dot positive" aria-hidden="true" /> {calendar.legendGain}
           </span>
-
-        ) : (
-
-          <span className="hint-text">{calendar.legendCashNone}</span>
-
-        )}
-
-        <span>* {calendar.legendFloating}</span>
-
-        <span>{calendar.legendWeekTotal}</span>
-
-      </div>
+          <span className="calendar-legend-pill">
+            <i className="dot negative" aria-hidden="true" /> {calendar.legendLoss}
+          </span>
+          <span className="calendar-legend-more">{calendar.legendToggle}</span>
+        </summary>
+        <div className="calendar-legend-extra">
+          {monthBadges.size > 0 ? (
+            <p>
+              {monthBadges.has('D') && <span className="dep">D</span>}
+              {monthBadges.has('W') && <span className="wit"> W</span>}
+              {monthBadges.has('R') && <span className="tx-out"> R</span>}
+              {monthBadges.has('L') && <span className="tx-in"> L</span>}
+              {monthBadges.has('F') && <span className="fee"> F</span>}
+              {' — '}
+              {calendar.legendCashDynamic}
+            </p>
+          ) : (
+            <p>{calendar.legendCashNone}</p>
+          )}
+          <p>* {calendar.legendFloating}</p>
+          <p>{calendar.legendWeekTotal}</p>
+        </div>
+      </details>
 
     </div>
 

@@ -8,6 +8,7 @@ export const es: Translations = {
     nextMonth: 'Mes siguiente',
     legendGain: 'Ganancia',
     legendLoss: 'Pérdida',
+    legendToggle: 'Más',
     legendCash: 'Movimientos de efectivo',
     legendFloating: 'PnL flotante (posiciones abiertas)',
     floatingTitle: 'Incluye PnL flotante de posiciones abiertas',
@@ -98,6 +99,10 @@ export const es: Translations = {
     equity: 'Curva de equity',
     floating: 'Flotante',
     sparkline: 'Últimos 14 días',
+    recentDays: '{count} días con trades',
+    recentAvg: 'Prom./día',
+    recentWinLoss: 'Días +/−',
+    recentBest: 'Mejor día',
   },
   dayTab: {
     statusAria: 'Estado del día',

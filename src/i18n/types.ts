@@ -14,6 +14,7 @@ export interface Translations {
     nextMonth: string
     legendGain: string
     legendLoss: string
+    legendToggle: string
     legendCash: string
     legendFloating: string
     floatingTitle: string
@@ -103,6 +104,10 @@ export interface Translations {
     equity: string
     floating: string
     sparkline: string
+    recentDays: string
+    recentAvg: string
+    recentWinLoss: string
+    recentBest: string
   }
   dayTab: {
     statusAria: string

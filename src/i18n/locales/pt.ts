@@ -8,6 +8,7 @@ export const pt: Translations = {
     nextMonth: 'Próximo mês',
     legendGain: 'Ganho',
     legendLoss: 'Perda',
+    legendToggle: 'Mais',
     legendCash: 'Movimentos de caixa',
     legendFloating: 'PnL flutuante (posições abertas)',
     floatingTitle: 'Inclui PnL flutuante de posições abertas',
@@ -98,6 +99,10 @@ export const pt: Translations = {
     equity: 'Curva de equity',
     floating: 'Flutuante',
     sparkline: 'Últimos 14 dias',
+    recentDays: '{count} dias com trades',
+    recentAvg: 'Méd./dia',
+    recentWinLoss: 'Dias +/−',
+    recentBest: 'Melhor dia',
   },
   dayTab: {
     statusAria: 'Estado do dia',
