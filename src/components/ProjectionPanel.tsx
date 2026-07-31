@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
+import type { Locale } from 'date-fns'
 import type { DayActivity } from '../types/account'
 import type { Translations } from '../i18n/types'
 import { formatMoney, pnlClass } from '../lib/aggregations'
+import { formatMonthKey } from '../lib/dateDisplay'
 import {
   computeProgressProjection,
   projectionCurvePoints,
@@ -13,6 +15,7 @@ interface Props {
   activities: DayActivity[]
   startBalance: number
   asOfDate: string
+  dateLocale: Locale
   t: Translations['projection']
 }
 
@@ -145,7 +148,7 @@ function ProjectionChart({
   )
 }
 
-export function ProjectionPanel({ activities, startBalance, asOfDate, t }: Props) {
+export function ProjectionPanel({ activities, startBalance, asOfDate, dateLocale, t }: Props) {
   const projection = useMemo(
     () => computeProgressProjection(activities, startBalance, asOfDate),
     [activities, startBalance, asOfDate],
@@ -186,7 +189,10 @@ export function ProjectionPanel({ activities, startBalance, asOfDate, t }: Props
 
       <div className="projection-scopes">
         <ScopeTable
-          scope={{ ...month, label: t.scopeMonth.replace('{month}', projection.monthKey) }}
+          scope={{
+            ...month,
+            label: t.scopeMonth.replace('{month}', formatMonthKey(projection.monthKey, dateLocale)),
+          }}
           streakKind={streak.kind}
           t={t}
         />

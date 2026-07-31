@@ -567,7 +567,6 @@ width:34px;
 height:34px;
 font-size:1.15rem}
 .calendar-title{
-text-transform:capitalize;
 font-size:1rem;
 font-weight:600}
 .calendar-table{
@@ -1023,6 +1022,67 @@ background:var(--accent-dim);
 box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
 .tab-panel-day{
 animation:tabFadeIn .18s ease}
+.day-grid-clean{
+grid-template-columns:1fr;
+gap:.65rem}
+.day-trades-panel{margin-bottom:0}
+.day-open-hint{
+margin:0 0 .65rem;
+font-size:.82rem;
+color:var(--muted)}
+.day-status-chips{
+display:flex;
+flex-wrap:wrap;
+gap:.4rem;
+margin:-.35rem 0 .75rem}
+.day-chip{
+display:inline-flex;
+align-items:center;
+gap:.35rem;
+padding:.28rem .55rem;
+border-radius:999px;
+font-size:.72rem;
+font-weight:600;
+border:1px solid color-mix(in srgb,var(--border) 85%,transparent);
+background:var(--bg)}
+.day-chip-goal.day-chip-progress{border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
+.day-chip-goal.day-chip-reached{border-color:color-mix(in srgb,var(--green) 45%,transparent);color:var(--green)}
+.day-chip-ok{border-color:color-mix(in srgb,var(--green) 35%,transparent);color:var(--green)}
+.day-chip-warn{border-color:color-mix(in srgb,var(--red) 45%,transparent);color:var(--red)}
+.day-chip-badge{font-size:.68rem;opacity:.9;font-weight:700}
+.day-chip-badge.ok{color:var(--green)}
+.day-insights{
+border:1px solid var(--border);
+border-radius:10px;
+background:var(--surface);
+overflow:hidden}
+.day-insights-summary{
+cursor:pointer;
+padding:.65rem .85rem;
+font-size:.84rem;
+font-weight:600;
+list-style:none;
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:.5rem}
+.day-insights-summary::-webkit-details-marker{display:none}
+.day-insights-hint{font-size:.72rem;font-weight:500;color:var(--muted)}
+.day-insights-body{
+padding:0 .85rem .85rem;
+display:flex;
+flex-direction:column;
+gap:.55rem;
+border-top:1px solid color-mix(in srgb,var(--border) 60%,transparent)}
+.day-insights-body .profit-goals-panel,
+.day-insights-body .threshold-rules-panel{
+margin:0;
+border:none;
+background:transparent;
+padding:.65rem 0 0;
+box-shadow:none}
+.profit-goals-panel.compact{padding:.65rem 0 0}
+.daily-notes-compact{padding-top:.25rem}
 @keyframes tabFadeIn{
 from{opacity:0;transform:translateY(4px)}
 to{opacity:1;transform:translateY(0)}}
@@ -1032,7 +1092,6 @@ padding:1.15rem 1.25rem}
 .day-hero-head{
 margin-bottom:.85rem}
 .day-hero-date{
-text-transform:capitalize;
 margin:0;
 font-size:1.15rem;
 font-weight:600}
@@ -1181,6 +1240,54 @@ padding:.5rem .65rem;
 margin-bottom:.5rem}
 .threshold-rules-panel.compact .threshold-rules-list{
 gap:.25rem}
+.profit-goal-banner{
+background:color-mix(in srgb,var(--green) 18%,var(--surface));
+border:1px solid color-mix(in srgb,var(--green) 45%,transparent);
+color:var(--text);
+padding:.65rem .85rem;
+border-radius:8px;
+margin-bottom:.65rem;
+font-size:.88rem}
+.profit-goals-panel{margin-bottom:.65rem}
+.profit-goals-panel.has-reached{border-color:color-mix(in srgb,var(--green) 35%,transparent)}
+.profit-goals-panel h3{margin:0 0 .25rem;font-size:.95rem}
+.profit-goals-sub{margin:0 0 .65rem;font-size:.78rem;color:var(--muted)}
+.profit-goals-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.55rem}
+.profit-goal{padding:.55rem .65rem;border-radius:8px;background:var(--bg);border:1px solid color-mix(in srgb,var(--border) 80%,transparent)}
+.profit-goal-reached{border-color:color-mix(in srgb,var(--green) 40%,transparent);background:color-mix(in srgb,var(--green) 8%,var(--bg))}
+.profit-goal-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.25rem}
+.profit-goal-name{font-size:.82rem;font-weight:600}
+.profit-goal-status{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.profit-status-progress{color:var(--muted)}
+.profit-status-reached{color:var(--green)}
+.profit-goal-amount{display:block;font-size:.78rem;margin-bottom:.35rem}
+.risk-advice-panel{margin-bottom:.65rem}
+.risk-advice-panel.compact .risk-advice-sub{display:none}
+.risk-advice-panel.compact h3{font-size:.95rem;margin:0 0 .5rem}
+.risk-advice-sub{margin:0 0 .65rem;font-size:.78rem;color:var(--muted)}
+.risk-advice-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem}
+@media(max-width:720px){.risk-advice-grid{grid-template-columns:1fr}}
+.risk-advice-stat{padding:.55rem .65rem;border-radius:8px;background:var(--bg);border:1px solid color-mix(in srgb,var(--border) 80%,transparent)}
+.risk-advice-stat .label{display:block;font-size:.72rem;color:var(--muted);margin-bottom:.2rem}
+.risk-advice-stat .val{display:block;font-size:1rem;font-weight:600}
+.risk-advice-stat .hint{display:block;font-size:.7rem;color:var(--muted);margin-top:.2rem}
+.risk-advice-verdict{padding:.6rem .75rem;border-radius:8px;margin-bottom:.65rem;background:var(--bg);border:1px solid color-mix(in srgb,var(--border) 80%,transparent)}
+.risk-advice-verdict-label{display:block;font-size:.72rem;color:var(--muted);margin-bottom:.15rem}
+.risk-advice-verdict strong{font-size:.92rem}
+.risk-verdict-positive{border-color:color-mix(in srgb,var(--green) 40%,transparent)}
+.risk-verdict-positive strong{color:var(--green)}
+.risk-verdict-negative{border-color:color-mix(in srgb,var(--red) 40%,transparent)}
+.risk-verdict-negative strong{color:var(--red)}
+.risk-verdict-neutral strong{color:var(--text)}
+.risk-verdict-muted strong{color:var(--muted)}
+.risk-advice-risk-row{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.55rem}
+.risk-advice-risk-row .label{display:block;font-size:.72rem;color:var(--muted)}
+.risk-advice-risk-row .val{display:block;font-weight:600;font-size:.9rem}
+.risk-advice-risk-row .hint{display:block;font-size:.7rem;color:var(--muted);margin-top:.15rem}
+.risk-advice-note{font-size:.78rem;color:var(--muted);margin:0 0 .5rem}
+.risk-advice-reasons{margin:0 0 .5rem;padding-left:1.1rem;font-size:.76rem;color:var(--muted)}
+.risk-advice-reasons li{margin-bottom:.2rem}
+.risk-advice-disclaimer{margin:0;font-size:.68rem;color:var(--muted);font-style:italic}
 .analytics-panel{display:flex;flex-direction:column;gap:.75rem}
 .analytics-toolbar{display:flex;gap:.75rem;align-items:center;flex-wrap:wrap}
 .analytics-section h3{margin:0 0 .65rem}

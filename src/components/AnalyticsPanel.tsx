@@ -1,8 +1,7 @@
 import { startOfWeek } from 'date-fns'
 import type { Locale } from 'date-fns'
 import { useMemo, useState } from 'react'
-import type { DayActivity } from '../types/account'
-import type { AppSettings } from '../types/account'
+import type { AccountSummary, AppSettings, DayActivity } from '../types/account'
 import type { Trade } from '../types/trade'
 import type { TradeMeta } from '../types/journal'
 import type { Translations } from '../i18n/types'
@@ -26,8 +25,15 @@ import {
   tradeSession,
   uniqueAccounts,
   weeklyPnl,
+  monthlyPnl,
 } from '../lib/analytics'
 import { formatMoney, pnlClass, winRate } from '../lib/aggregations'
+import { parseLocalDateKey } from '../lib/mt5Date'
+import { analyzeRiskAdvice, computeWeeklyStats } from '../lib/riskAdvice'
+import { RiskAdvicePanel } from './RiskAdvicePanel'
+import { TradeSearchPanel } from './TradeSearchPanel'
+import { AccountFinancePanel } from './AccountFinancePanel'
+import { PeriodSummaryPanel } from './PeriodSummaryPanel'
 import { buildReportData, exportMonthlyReport, refDateFromActivities } from '../lib/exportReport'
 import { sortTradesRecentFirst } from '../lib/tradeSort'
 import { EquityCurve } from './EquityCurve'
@@ -42,6 +48,14 @@ interface Props {
   selectedDayPnl: number
   t: Translations['analytics']
   tJournal: Translations['journal']
+  tRiskAdvice: Translations['riskAdvice']
+  tFinance: Translations['finance']
+  tSearch: Translations['search']
+  tPeriod: Translations['period']
+  sideLabels: Translations['side']
+  displayAccount: AccountSummary
+  mismatchHint?: string
+  onSelectDate: (date: string) => void
   dateLocale: Locale
 }
 
@@ -62,6 +76,14 @@ export function AnalyticsPanel({
   selectedDayPnl,
   t,
   tJournal,
+  tRiskAdvice,
+  tFinance,
+  tSearch,
+  tPeriod,
+  sideLabels,
+  displayAccount,
+  mismatchHint,
+  onSelectDate,
   dateLocale,
 }: Props) {
   const accounts = useMemo(
@@ -99,8 +121,19 @@ export function AnalyticsPanel({
     [filteredTrades, activities, dateLocale],
   )
 
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 })
+  const refDate = selectedDate ? parseLocalDateKey(selectedDate) : new Date()
+  const weekStart = startOfWeek(refDate, { weekStartsOn: 1 })
   const weekPnl = weeklyPnl(activities, weekStart)
+  const monthPnlValue = monthlyPnl(activities, refDate)
+  const riskAdvice = useMemo(() => {
+    const weekly = computeWeeklyStats(activities, selectedDate)
+    return analyzeRiskAdvice({
+      weekly,
+      metrics,
+      drawdown,
+      tradeCount: filteredTrades.length,
+    })
+  }, [activities, selectedDate, metrics, drawdown, filteredTrades.length])
   const alertKey = goalAlert(selectedDayPnl, settings)
 
   const pfLabel =
@@ -166,6 +199,14 @@ export function AnalyticsPanel({
           {t.exportPdf}
         </button>
       </div>
+
+      <TradeSearchPanel
+        trades={filteredTrades}
+        metaMap={metaMap}
+        t={tSearch}
+        sideLabels={sideLabels}
+        onSelectDate={onSelectDate}
+      />
 
       <section className="panel analytics-section">
         <h3>{t.kpiTitle}</h3>
@@ -267,6 +308,20 @@ export function AnalyticsPanel({
               }
             />
           </label>
+          <label>
+            {t.monthlyProfitGoal}
+            <input
+              type="number"
+              step="any"
+              value={settings.monthlyProfitGoal ?? ''}
+              onChange={(e) =>
+                onSettingsChange({
+                  ...settings,
+                  monthlyProfitGoal: parseFloat(e.target.value) || undefined,
+                })
+              }
+            />
+          </label>
           <label className="check-row">
             <input
               type="checkbox"
@@ -283,6 +338,7 @@ export function AnalyticsPanel({
             <div className="goal-bar-wrap">
               <span>
                 {t.todayGoal}: {formatMoney(selectedDayPnl)} / {formatMoney(settings.dailyProfitGoal)}
+                {selectedDayPnl >= settings.dailyProfitGoal ? ` · ${t.goalReached}` : ''}
               </span>
               <div className="goal-bar">
                 <div
@@ -298,6 +354,7 @@ export function AnalyticsPanel({
             <div className="goal-bar-wrap">
               <span>
                 {t.weekGoal}: {formatMoney(weekPnl)} / {formatMoney(settings.weeklyProfitGoal)}
+                {weekPnl >= settings.weeklyProfitGoal ? ` · ${t.goalReached}` : ''}
               </span>
               <div className="goal-bar">
                 <div
@@ -309,8 +366,32 @@ export function AnalyticsPanel({
               </div>
             </div>
           )}
+          {settings.monthlyProfitGoal != null && (
+            <div className="goal-bar-wrap">
+              <span>
+                {t.monthGoal}: {formatMoney(monthPnlValue)} / {formatMoney(settings.monthlyProfitGoal)}
+                {monthPnlValue >= settings.monthlyProfitGoal ? ` · ${t.goalReached}` : ''}
+              </span>
+              <div className="goal-bar">
+                <div
+                  className={`goal-fill ${pnlClass(monthPnlValue)}`}
+                  style={{
+                    width: `${Math.min(100, Math.max(0, (monthPnlValue / settings.monthlyProfitGoal) * 100))}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </section>
+
+      {filteredTrades.length > 0 && (
+        <RiskAdvicePanel
+          advice={riskAdvice}
+          balance={settings.brokerBalance ?? activities[activities.length - 1]?.endBalance ?? 0}
+          t={tRiskAdvice}
+        />
+      )}
 
       <section className="panel analytics-section">
         <h3>{t.streaksTitle}</h3>
@@ -496,6 +577,14 @@ export function AnalyticsPanel({
           </tbody>
         </table>
       </section>
+
+      <PeriodSummaryPanel trades={filteredTrades} dateLocale={dateLocale} t={tPeriod} />
+
+      <AccountFinancePanel
+        account={displayAccount}
+        t={tFinance}
+        mismatchHint={mismatchHint}
+      />
     </div>
   )
 }

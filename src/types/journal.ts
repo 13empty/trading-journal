@@ -26,6 +26,7 @@ export interface TrackingGoals {
   dailyProfitGoal?: number
   dailyLossLimit?: number
   weeklyProfitGoal?: number
+  monthlyProfitGoal?: number
   alertOnLossLimit?: boolean
   /** Max closed trades per day before rule fires */
   maxTradesPerDay?: number

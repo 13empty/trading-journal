@@ -1,4 +1,4 @@
-import { format } from 'date-fns'
+import { formatDisplayDate } from '../lib/dateDisplay'
 import type { Locale } from 'date-fns'
 import type { DayActivity } from '../types/account'
 import type { Translations } from '../i18n/types'
@@ -18,6 +18,7 @@ interface Props {
   dateLocale: Locale
   subtitle?: string
   hideChart?: boolean
+  showChart?: boolean
   t: Translations['dayHero']
 }
 
@@ -32,17 +33,19 @@ export function DayHero({
   dateLocale,
   subtitle,
   hideChart = false,
+  showChart = true,
   t,
 }: Props) {
   const pnl = selectedDay?.pnl ?? 0
   const hasLive = (selectedDay?.openCount ?? 0) > 0
+  const chartVisible = showChart && !hideChart
 
   return (
     <section className="panel day-hero">
       <div className="day-hero-head">
         <div>
           <h2 className="day-hero-date">
-            {format(parseLocalDateKey(selectedDate), dateFormat, { locale: dateLocale })}
+            {formatDisplayDate(parseLocalDateKey(selectedDate), dateFormat, dateLocale)}
           </h2>
           {subtitle && <p className="day-hero-sub">{subtitle}</p>}
         </div>
@@ -73,7 +76,7 @@ export function DayHero({
         </div>
       </div>
 
-      {!hideChart && (
+      {!chartVisible ? null : (
         <div className="day-hero-chart">
           <h4 className="day-hero-chart-title">{t.equity}</h4>
           <EquityCurve points={equityPoints} />

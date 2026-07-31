@@ -103,6 +103,14 @@ export interface Translations {
     equity: string
     floating: string
   }
+  dayTab: {
+    statusAria: string
+    chipRulesOk: string
+    chipRulesStop: string
+    insightsTitle: string
+    insightsHint: string
+    notesOnlyTitle: string
+  }
   daySummary: {
     title: string
     pnl: string
@@ -268,9 +276,12 @@ export interface Translations {
     dailyProfitGoal: string
     dailyLossLimit: string
     weeklyProfitGoal: string
+    monthlyProfitGoal: string
     alertOnLossLimit: string
     todayGoal: string
     weekGoal: string
+    monthGoal: string
+    goalReached: string
     lossLimitHit: string
     streaksTitle: string
     currentWinStreak: string
@@ -458,5 +469,50 @@ export interface Translations {
     revengeCooldown: string
     maxDrawdownPct: string
     alertOnThresholds: string
+  }
+  profitGoals: {
+    title: string
+    subtitle: string
+    daily: string
+    weekly: string
+    monthly: string
+    statusReached: string
+    statusProgress: string
+    statusOff: string
+    reachedBanner: string
+  }
+  riskAdvice: {
+    title: string
+    subtitle: string
+    avgWeeklyPnl: string
+    weeksSampled: string
+    greenRedWeeks: string
+    recentWeeklyAvg: string
+    recentWeeklyHint: string
+    recommendation: string
+    actionIncrease: string
+    actionHold: string
+    actionDecrease: string
+    actionInsufficient: string
+    currentRisk: string
+    suggestedRisk: string
+    suggestedRiskAmount: string
+    riskUnknown: string
+    needMoreData: string
+    disclaimer: string
+    reasonInsufficientWeeks: string
+    reasonInsufficientTrades: string
+    reasonPositiveExpectancy: string
+    reasonNegativeExpectancy: string
+    reasonProfitFactorStrong: string
+    reasonProfitFactorWeak: string
+    reasonDrawdownElevated: string
+    reasonDrawdownSevere: string
+    reasonWeeklyAvgPositive: string
+    reasonWeeklyAvgNegative: string
+    reasonRecentWeeksWeak: string
+    reasonRecentWeeksStrong: string
+    reasonLossStreakWeeks: string
+    reasonStableEdge: string
   }
 }

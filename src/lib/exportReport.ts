@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import type { Locale } from 'date-fns'
+import { formatDisplayDate } from './dateDisplay'
 import type { DayActivity } from '../types/account'
 import type { AppSettings } from '../types/account'
 import type {
@@ -29,7 +30,7 @@ export interface ReportData {
 }
 
 function reportHtml(data: ReportData, locale: Locale, labels: Record<string, string>): string {
-  const month = format(new Date(), 'MMMM yyyy', { locale })
+  const month = formatDisplayDate(new Date(), 'MMMM yyyy', locale)
   const pf =
     data.metrics.profitFactor === Infinity ? '∞' : data.metrics.profitFactor.toFixed(2)
 

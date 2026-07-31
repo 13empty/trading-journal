@@ -14,6 +14,7 @@ import { weekdayHeaders } from '../lib/calendarLocale'
 
 import { badgesForDay, badgesInMonth, cashForDate, dayCashSummary } from '../lib/calendarCash'
 
+import { formatDisplayDate } from '../lib/dateDisplay'
 import { parseLocalDateKey } from '../lib/mt5Date'
 
 import { formatMoney, pnlClass } from '../lib/aggregations'
@@ -217,7 +218,7 @@ export function Calendar({
 
         <div className="calendar-nav-center">
 
-          <span className="calendar-title">{format(month, 'MMMM yyyy', { locale: dateLocale })}</span>
+          <span className="calendar-title">{formatDisplayDate(month, 'MMMM yyyy', dateLocale)}</span>
 
           {monthPnl.hasData && (
 

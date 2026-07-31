@@ -6,6 +6,7 @@ import {
   endOfWeek,
 } from 'date-fns'
 import { parseLocalDateKey } from './mt5Date'
+import { formatDisplayDate } from './dateDisplay'
 import type { Locale } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Trade, PeriodView, PeriodSummary, DaySummary } from '../types/trade'
@@ -25,22 +26,22 @@ export function groupByPeriod(
     switch (view) {
       case 'day':
         key = t.date
-        label = format(d, 'EEE d MMM yyyy', { locale: dateLocale })
+        label = formatDisplayDate(d, 'EEE d MMM yyyy', dateLocale)
         break
       case 'week': {
         const start = startOfWeek(d, { weekStartsOn: 1 })
         const end = endOfWeek(d, { weekStartsOn: 1 })
         key = format(start, 'yyyy-MM-dd')
-        label = `${format(start, 'd MMM', { locale: dateLocale })} – ${format(end, 'd MMM yyyy', { locale: dateLocale })}`
+        label = `${formatDisplayDate(start, 'd MMM', dateLocale)} – ${formatDisplayDate(end, 'd MMM yyyy', dateLocale)}`
         break
       }
       case 'month':
         key = format(startOfMonth(d), 'yyyy-MM')
-        label = format(d, 'MMMM yyyy', { locale: dateLocale })
+        label = formatDisplayDate(d, 'MMMM yyyy', dateLocale)
         break
       case 'year':
         key = format(startOfYear(d), 'yyyy')
-        label = format(d, 'yyyy', { locale: es })
+        label = format(d, 'yyyy')
         break
     }
 

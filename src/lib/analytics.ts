@@ -15,6 +15,7 @@ import type {
 import type { Trade } from '../types/trade'
 import { tradePositionKey } from './mergeTrades'
 import { parseLocalDateKey } from './mt5Date'
+import { formatDisplayDate } from './dateDisplay'
 
 /** Profit de MT5 por operación (columna Profit del historial). */
 export function netPnl(t: Trade): number {
@@ -327,7 +328,7 @@ export function compareMonths(
   }
 
   return {
-    label: `${format(prevStart, 'MMM yyyy', { locale: dateLocale })} vs ${format(curStart, 'MMM yyyy', { locale: dateLocale })}`,
+    label: `${formatDisplayDate(prevStart, 'MMM yyyy', dateLocale)} vs ${formatDisplayDate(curStart, 'MMM yyyy', dateLocale)}`,
     current: bucket(curKey),
     previous: bucket(prevKey),
   }
@@ -376,6 +377,13 @@ export function goalAlert(
     return 'loss_limit'
   }
   return null
+}
+
+export function monthlyPnl(activities: DayActivity[], refDate: Date): number {
+  const monthKey = format(refDate, 'yyyy-MM')
+  return activities
+    .filter((a) => a.date.startsWith(monthKey))
+    .reduce((s, a) => s + a.pnl, 0)
 }
 
 export function weeklyPnl(activities: DayActivity[], weekStart: Date): number {
