@@ -3,6 +3,7 @@ import type { EquityPoint } from '../types/journal'
 interface Props {
   points: EquityPoint[]
   height?: number
+  compact?: boolean
 }
 
 type Pt = { x: number; y: number }
@@ -67,7 +68,7 @@ function areaPath(points: Pt[], baseY: number): string {
   return `${monotonePath(points)} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`
 }
 
-export function EquityCurve({ points, height = 112 }: Props) {
+export function EquityCurve({ points, height = 112, compact = false }: Props) {
   if (points.length < 2) {
     return <p className="empty chart-empty">—</p>
   }
@@ -120,10 +121,12 @@ export function EquityCurve({ points, height = 112 }: Props) {
         <circle className="eq-dot-ring" cx={last.x} cy={last.y} r="5" />
         <circle className="eq-dot" cx={last.x} cy={last.y} r="2.25" />
       </svg>
-      <div className="equity-labels">
-        <span>{formatLabel(startVal)}</span>
-        <span className="eq-label-end">{formatEndLabel(endVal)}</span>
-      </div>
+      {!compact && (
+        <div className="equity-labels">
+          <span>{formatLabel(startVal)}</span>
+          <span className="eq-label-end">{formatEndLabel(endVal)}</span>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 {
   "name": "trading-journal",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Trading Journal con sync MT5",
   "main": "electron/main.cjs",
   "type": "module",

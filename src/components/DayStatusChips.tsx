@@ -17,6 +17,8 @@ const GOAL_LABEL: Record<ProfitGoalState['id'], keyof Translations['profitGoals'
   monthly: 'monthly',
 }
 
+const GOAL_CHIP_MIN_PCT = 80
+
 export function DayStatusChips({
   profitGoals,
   thresholdRules,
@@ -25,15 +27,20 @@ export function DayStatusChips({
   t,
   tGoals,
 }: Props) {
-  const activeGoals = showGoals ? profitGoals.filter((g) => g.status !== 'off') : []
+  const goalChips = showGoals
+    ? profitGoals.filter(
+        (g) =>
+          g.status !== 'off' &&
+          (g.status === 'reached' || g.pct >= GOAL_CHIP_MIN_PCT),
+      )
+    : []
   const ruleWarns = showRules ? thresholdRules.filter((r) => r.status === 'warn').length : 0
-  const hasRules = showRules && thresholdRules.some((r) => r.status !== 'off')
 
-  if (activeGoals.length === 0 && !hasRules) return null
+  if (goalChips.length === 0 && ruleWarns === 0) return null
 
   return (
     <div className="day-status-chips" aria-label={t.statusAria}>
-      {activeGoals.map((goal) => (
+      {goalChips.map((goal) => (
         <span
           key={goal.id}
           className={`day-chip day-chip-goal day-chip-${goal.status}`}
@@ -47,13 +54,9 @@ export function DayStatusChips({
           )}
         </span>
       ))}
-      {hasRules && (
-        <span
-          className={`day-chip day-chip-rules${ruleWarns > 0 ? ' day-chip-warn' : ' day-chip-ok'}`}
-        >
-          {ruleWarns > 0
-            ? t.chipRulesStop.replace('{count}', String(ruleWarns))
-            : t.chipRulesOk}
+      {ruleWarns > 0 && (
+        <span className="day-chip day-chip-rules day-chip-warn">
+          {t.chipRulesStop.replace('{count}', String(ruleWarns))}
         </span>
       )}
     </div>

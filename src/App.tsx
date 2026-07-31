@@ -11,6 +11,7 @@ import { ProjectionPanel } from './components/ProjectionPanel'
 import { DayHero } from './components/DayHero'
 import { DayStatusChips } from './components/DayStatusChips'
 import { DayInsightsSection } from './components/DayInsightsSection'
+import { DayNotesModal } from './components/DayNotesModal'
 import { buildEquityCurve } from './lib/analytics'
 import { SettingsPanel } from './components/SettingsPanel'
 import { WelcomeModal } from './components/WelcomeModal'
@@ -106,6 +107,7 @@ function App() {
   const [showWelcome, setShowWelcome] = useState(false)
   const [showBrokerWizard, setShowBrokerWizard] = useState(false)
   const [showSessionSummary, setShowSessionSummary] = useState(false)
+  const [showDayNotes, setShowDayNotes] = useState(false)
   const [tradeMetaMap, setTradeMetaMap] = useState<Record<string, TradeMeta>>(() => loadTradeMetaMap())
   const [dailyNotesMap, setDailyNotesMap] = useState<Record<string, DailyNote>>(() => loadDailyNotes())
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
@@ -327,6 +329,7 @@ function App() {
   )
   const selectedDayPnl = selectedDay?.pnl ?? 0
   const dayNote = dailyNotesMap[selectedDate] ?? { text: '', whatWorked: '', whatFailed: '' }
+  const hasDayNoteContent = Boolean(dayNote.text.trim() || dayNote.whatWorked.trim() || dayNote.whatFailed.trim())
 
   const todayDay = dayMap.get(todayKey)
   const todayDayTrades = useMemo(
@@ -764,6 +767,7 @@ function App() {
               dateLocale={dateLocale}
               subtitle={dayHeroSubtitle}
               showChart={false}
+              showSparkline
               hideChart={selectedDate === todayKey && todayRuleBreach}
               t={t.dayHero}
             />
@@ -783,9 +787,18 @@ function App() {
                   <h3>
                     {t.trades.dayTitle} ({dayTrades.length})
                   </h3>
-                  <button type="button" className="btn-ghost-sm" onClick={() => setShowImport(true)}>
-                    {t.trades.importHelp}
-                  </button>
+                  <div className="panel-head-actions">
+                    <button
+                      type="button"
+                      className={`btn-ghost-sm${hasDayNoteContent ? ' has-dot' : ''}`}
+                      onClick={() => setShowDayNotes(true)}
+                    >
+                      {t.dayTab.notesBtn}
+                    </button>
+                    <button type="button" className="btn-ghost-sm" onClick={() => setShowImport(true)}>
+                      {t.trades.importHelp}
+                    </button>
+                  </div>
                 </div>
                 {selectedDay && (selectedDay.openCount ?? 0) > 0 && selectedDate === todayKey && (
                   <p className="day-open-hint">
@@ -906,12 +919,9 @@ function App() {
                 showRules={isTradingRulesEnabled(settings)}
                 profitGoals={profitGoalsForDay}
                 thresholdRules={thresholdRulesForDay}
-                dayNote={dayNote}
-                onSaveNote={saveDayNote}
                 t={t.dayTab}
                 tGoals={t.profitGoals}
                 tThresholds={t.thresholds}
-                tJournal={t.journal}
               />
             </main>
           </div>
@@ -938,6 +948,16 @@ function App() {
           brokerNames={t.broker.names}
           t={t.broker}
           onComplete={handleBrokerComplete}
+        />
+      )}
+
+      {showDayNotes && (
+        <DayNotesModal
+          dayNote={dayNote}
+          onSave={saveDayNote}
+          onClose={() => setShowDayNotes(false)}
+          t={t.journal}
+          tDay={t.dayTab}
         />
       )}
 

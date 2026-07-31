@@ -19,6 +19,7 @@ interface Props {
   subtitle?: string
   hideChart?: boolean
   showChart?: boolean
+  showSparkline?: boolean
   t: Translations['dayHero']
 }
 
@@ -34,11 +35,14 @@ export function DayHero({
   subtitle,
   hideChart = false,
   showChart = true,
+  showSparkline = false,
   t,
 }: Props) {
   const pnl = selectedDay?.pnl ?? 0
   const hasLive = (selectedDay?.openCount ?? 0) > 0
   const chartVisible = showChart && !hideChart
+  const sparkPoints = equityPoints.slice(-14)
+  const sparklineVisible = showSparkline && !hideChart && !chartVisible && sparkPoints.length >= 2
 
   return (
     <section className="panel day-hero">
@@ -80,6 +84,13 @@ export function DayHero({
         <div className="day-hero-chart">
           <h4 className="day-hero-chart-title">{t.equity}</h4>
           <EquityCurve points={equityPoints} />
+        </div>
+      )}
+
+      {sparklineVisible && (
+        <div className="day-hero-sparkline">
+          <span className="day-sparkline-label">{t.sparkline}</span>
+          <EquityCurve points={sparkPoints} height={48} compact />
         </div>
       )}
     </section>

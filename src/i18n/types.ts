@@ -102,6 +102,7 @@ export interface Translations {
     winRate: string
     equity: string
     floating: string
+    sparkline: string
   }
   dayTab: {
     statusAria: string
@@ -109,7 +110,9 @@ export interface Translations {
     chipRulesStop: string
     insightsTitle: string
     insightsHint: string
-    notesOnlyTitle: string
+    notesBtn: string
+    notesModalHint: string
+    notesDone: string
   }
   daySummary: {
     title: string

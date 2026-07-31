@@ -1083,6 +1083,34 @@ padding:.65rem 0 0;
 box-shadow:none}
 .profit-goals-panel.compact{padding:.65rem 0 0}
 .daily-notes-compact{padding-top:.25rem}
+.day-hero-sparkline{
+margin-top:.5rem;
+padding-top:.5rem;
+border-top:1px solid color-mix(in srgb,var(--border) 55%,transparent)}
+.day-sparkline-label{
+display:block;
+font-size:.68rem;
+color:var(--muted);
+margin-bottom:.15rem;
+text-transform:uppercase;
+letter-spacing:.04em}
+.day-hero-sparkline .equity-curve-wrap{margin:0}
+.panel-head-actions{
+display:flex;
+align-items:center;
+gap:.35rem;
+flex-wrap:wrap}
+.btn-ghost-sm.has-dot{position:relative;padding-right:.85rem}
+.btn-ghost-sm.has-dot::after{
+content:'';
+position:absolute;
+top:.2rem;
+right:.35rem;
+width:6px;
+height:6px;
+border-radius:50%;
+background:var(--accent)}
+.day-notes-modal .daily-notes{margin-top:.5rem}
 @keyframes tabFadeIn{
 from{opacity:0;transform:translateY(4px)}
 to{opacity:1;transform:translateY(0)}}
