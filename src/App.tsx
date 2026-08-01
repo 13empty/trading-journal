@@ -12,11 +12,13 @@ import { DayHero } from './components/DayHero'
 import { DayStatusChips } from './components/DayStatusChips'
 import { DayInsightsSection } from './components/DayInsightsSection'
 import { DayNotesModal } from './components/DayNotesModal'
-import { buildEquityCurve } from './lib/analytics'
+import { buildEquityCurve, effectiveRR } from './lib/analytics'
 import { SettingsPanel } from './components/SettingsPanel'
 import { WelcomeModal } from './components/WelcomeModal'
 import { BrokerWizardModal } from './components/BrokerWizardModal'
 import { UpdateBanner } from './components/UpdateBanner'
+import { DayTradeJournalBar } from './components/DayTradeJournalBar'
+import { WeeklySummaryModal } from './components/WeeklySummaryModal'
 import { SessionSummaryModal } from './components/SessionSummaryModal'
 import { TradeMetaModal } from './components/TradeMetaModal'
 import { useMt5Sync } from './hooks/useMt5Sync'
@@ -31,6 +33,7 @@ import { mergeLiveDayMap } from './lib/dayMapLive'
 import {
   formatMoney,
   pnlClass,
+  winRate,
 } from './lib/aggregations'
 import { importFromFile } from './lib/excelImport'
 import { mergeCashBySignature, mergeTrades } from './lib/mergeTrades'
@@ -46,21 +49,28 @@ import {
 import {
   loadDailyNotes,
   loadTradeMetaMap,
+  loadWeeklyNotes,
   saveDailyNotes,
   saveTradeMetaMap,
+  saveWeeklyNotes,
 } from './lib/journalStorage'
-import type { DailyNote, TradeMeta, ThresholdRuleId } from './types/journal'
+import type { DailyNote, TradeMeta, WeeklyNote } from './types/journal'
 import {
   alertsEnabled,
-  evaluateThresholdRules,
+  evaluateThresholdRulesForDate,
   hasThresholdWarning,
   isTradingRulesEnabled,
+  THRESHOLD_LABEL_KEYS,
 } from './lib/thresholdRules'
 import {
   evaluateProfitGoals,
   hasAnyProfitGoal,
   hasReachedProfitGoal,
+  PROFIT_GOAL_LABEL_KEYS,
 } from './lib/profitGoals'
+import { notifyOnce, pruneNotifyKeys } from './lib/notifyOnce'
+import { computeDayJournalStats, tradeHasJournalMeta } from './lib/tradeJournalStats'
+import { buildWeeklySummary } from './lib/weeklySummary'
 import { type BackupBundle } from './lib/backup'
 import { desktopNotify, getDesktopInfo } from './lib/desktop'
 import { tradeMetaKey as journalTradeKey } from './lib/journalStorage'
@@ -85,13 +95,6 @@ const emptyTrade = (date: string): Omit<Trade, 'id'> => ({
   notes: '',
 })
 
-const THRESHOLD_LABEL_KEY: Record<ThresholdRuleId, keyof ReturnType<typeof getTranslations>['thresholds']> = {
-  daily_loss: 'dailyLoss',
-  max_trades: 'maxTrades',
-  revenge_risk: 'revengeRisk',
-  drawdown_peak: 'drawdownPeak',
-}
-
 function App() {
   const [trades, setTrades] = useState<Trade[]>(() => loadTrades())
   const [cash, setCash] = useState<CashMovement[]>(() => loadCashMovements())
@@ -107,9 +110,11 @@ function App() {
   const [showWelcome, setShowWelcome] = useState(false)
   const [showBrokerWizard, setShowBrokerWizard] = useState(false)
   const [showSessionSummary, setShowSessionSummary] = useState(false)
+  const [showWeeklySummary, setShowWeeklySummary] = useState(false)
   const [showDayNotes, setShowDayNotes] = useState(false)
   const [tradeMetaMap, setTradeMetaMap] = useState<Record<string, TradeMeta>>(() => loadTradeMetaMap())
   const [dailyNotesMap, setDailyNotesMap] = useState<Record<string, DailyNote>>(() => loadDailyNotes())
+  const [weeklyNotesMap, setWeeklyNotesMap] = useState<Record<string, WeeklyNote>>(() => loadWeeklyNotes())
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const mt5ConnectedOnce = useRef(false)
@@ -137,6 +142,11 @@ function App() {
   const persistDailyNotes = useCallback((map: Record<string, DailyNote>) => {
     setDailyNotesMap(map)
     saveDailyNotes(map)
+  }, [])
+
+  const persistWeeklyNotes = useCallback((map: Record<string, WeeklyNote>) => {
+    setWeeklyNotesMap(map)
+    saveWeeklyNotes(map)
   }, [])
 
   const lang: AppLanguage = settings.language ?? 'es'
@@ -311,10 +321,7 @@ function App() {
     () => tradesForView.filter((t) => t.date === selectedDate).sort((a, b) => b.pnl - a.pnl),
     [tradesForView, selectedDate],
   )
-  const dayWinRate = useMemo(
-    () => (dayTrades.length ? (dayTrades.filter((t) => t.pnl >= 0).length / dayTrades.length) * 100 : 0),
-    [dayTrades],
-  )
+  const dayWinRate = useMemo(() => winRate(dayTrades), [dayTrades])
   const equityCurve = useMemo(() => buildEquityCurve(activities), [activities])
   const equityPoints = useMemo(() => equityCurve.slice(-90), [equityCurve])
   const dayHeroSubtitle = useMemo(() => {
@@ -339,35 +346,28 @@ function App() {
 
   const thresholdRulesForDay = useMemo(
     () =>
-      evaluateThresholdRules({
+      evaluateThresholdRulesForDate({
         settings,
-        dayPnl: selectedDay?.pnl ?? 0,
-        dayTrades: dayTrades,
-        equityCurve,
+        date: selectedDate,
         todayKey,
-        todayDay: selectedDate === todayKey ? selectedDay : undefined,
-        openCount: selectedDate === todayKey ? (selectedDay?.openCount ?? 0) : 0,
+        dayPnl: selectedDay?.pnl ?? 0,
+        dayTrades,
+        equityCurve,
+        day: selectedDay,
       }),
-    [
-      settings,
-      selectedDay,
-      dayTrades,
-      equityCurve,
-      selectedDate,
-      todayKey,
-    ],
+    [settings, selectedDate, selectedDay, dayTrades, equityCurve, todayKey],
   )
 
   const todayThresholdRules = useMemo(
     () =>
-      evaluateThresholdRules({
+      evaluateThresholdRulesForDate({
         settings,
+        date: todayKey,
+        todayKey,
         dayPnl: todayDay?.pnl ?? 0,
         dayTrades: todayDayTrades,
         equityCurve,
-        todayKey,
-        todayDay,
-        openCount: todayDay?.openCount ?? 0,
+        day: todayDay,
       }),
     [settings, todayDay, todayDayTrades, equityCurve, todayKey],
   )
@@ -384,32 +384,56 @@ function App() {
       (selectedDate === todayKey && todayRuleBreach),
     [thresholdRulesForDay, profitGoalsForDay, selectedDate, todayKey, todayRuleBreach],
   )
+  const todayGoals = useMemo(
+    () => evaluateProfitGoals(settings, dayMap, todayKey),
+    [settings, dayMap, todayKey],
+  )
+  const dayJournalStats = useMemo(
+    () => computeDayJournalStats(dayTrades, tradeMetaMap, journalTradeKey),
+    [dayTrades, tradeMetaMap],
+  )
+  const weeklySummary = useMemo(
+    () => buildWeeklySummary(dayMap, tradesForView, selectedDate),
+    [dayMap, tradesForView, selectedDate],
+  )
+  const weekNoteKey = weeklySummary.weekStart
+  const weekNote = weeklyNotesMap[weekNoteKey] ?? { repeat: '', avoid: '', focus: '' }
   const todayBreachedRules = useMemo(
     () => todayThresholdRules.filter((r) => r.status === 'warn'),
     [todayThresholdRules],
   )
   const thresholdNotified = useRef<Set<string>>(new Set())
+  const goalNotified = useRef<Set<string>>(new Set())
+  const mt5AlertNotified = useRef(false)
+  const mt5WasConnected = useRef(false)
+  const notifyEnabled = settings.desktopNotifications !== false
 
   useEffect(() => {
     const active = new Set(
       todayThresholdRules.filter((r) => r.status === 'warn').map((r) => `${todayKey}:${r.id}`),
     )
-    for (const key of thresholdNotified.current) {
-      if (!active.has(key)) thresholdNotified.current.delete(key)
-    }
+    pruneNotifyKeys(active, thresholdNotified.current)
   }, [todayThresholdRules, todayKey])
+
+  useEffect(() => {
+    const active = new Set(
+      todayGoals.filter((g) => g.status === 'reached').map((g) => `${todayKey}:${g.id}`),
+    )
+    pruneNotifyKeys(active, goalNotified.current)
+  }, [todayGoals, todayKey])
 
   useEffect(() => {
     if (!alertsEnabled(settings) || !todayRuleBreach) return
     for (const rule of todayThresholdRules) {
       if (rule.status !== 'warn') continue
       const key = `${todayKey}:${rule.id}`
-      if (thresholdNotified.current.has(key)) continue
-      thresholdNotified.current.add(key)
-      void desktopNotify(
-        'Trading Journal',
-        t.thresholds.interruptBanner,
-        settings.desktopNotifications !== false,
+      const label = t.thresholds[THRESHOLD_LABEL_KEYS[rule.id]]
+      notifyOnce(
+        thresholdNotified.current,
+        key,
+        t.brand.title,
+        tf(t.notifications.ruleBreached, { rule: label }),
+        notifyEnabled,
       )
     }
   }, [
@@ -417,8 +441,66 @@ function App() {
     todayThresholdRules,
     todayKey,
     settings,
-    t.thresholds.interruptBanner,
+    t.brand.title,
+    t.thresholds,
+    t.notifications.ruleBreached,
+    tf,
+    notifyEnabled,
   ])
+
+  useEffect(() => {
+    if (!hasAnyProfitGoal(settings)) return
+    if (settings.showGoalReachedMessage === false) return
+    for (const goal of todayGoals) {
+      if (goal.status !== 'reached') continue
+      const key = `${todayKey}:${goal.id}`
+      const label = t.profitGoals[PROFIT_GOAL_LABEL_KEYS[goal.id]]
+      notifyOnce(
+        goalNotified.current,
+        key,
+        t.brand.title,
+        tf(t.notifications.goalReached, { goal: label, amount: formatMoney(goal.current) }),
+        notifyEnabled,
+      )
+    }
+  }, [
+    todayGoals,
+    todayKey,
+    settings,
+    t.brand.title,
+    t.profitGoals,
+    t.notifications.goalReached,
+    tf,
+    notifyEnabled,
+  ])
+
+  useEffect(() => {
+    const connected = bridgeOnline && mt5Connected
+    if (connected) {
+      mt5WasConnected.current = true
+      mt5AlertNotified.current = false
+      return
+    }
+    if (!mt5WasConnected.current || !notifyEnabled) return
+    if (mt5AlertNotified.current) return
+    mt5AlertNotified.current = true
+    const body = bridgeOnline ? t.notifications.mt5Disconnected : t.notifications.bridgeOffline
+    void desktopNotify(t.brand.title, body, true)
+  }, [
+    bridgeOnline,
+    mt5Connected,
+    notifyEnabled,
+    t.brand.title,
+    t.notifications.mt5Disconnected,
+    t.notifications.bridgeOffline,
+  ])
+
+  const saveWeekNote = (patch: Partial<WeeklyNote>) => {
+    persistWeeklyNotes({
+      ...weeklyNotesMap,
+      [weekNoteKey]: { ...weekNote, ...patch },
+    })
+  }
 
   const saveDayNote = (patch: Partial<DailyNote>) => {
     const next = {
@@ -571,7 +653,7 @@ function App() {
           <div className="sidebar-brand">
             <span className="logo">TJ</span>
             <div>
-              <h1>Trading Journal</h1>
+              <h1>{t.brand.title}</h1>
               <p>{t.brand.subtitle}</p>
             </div>
           </div>
@@ -626,6 +708,9 @@ function App() {
         <div className="sidebar-actions">
           <button type="button" className="btn-primary full" onClick={() => setShowSessionSummary(true)}>
             {t.session.button}
+          </button>
+          <button type="button" className="btn-secondary full sidebar-action-full" onClick={() => setShowWeeklySummary(true)}>
+            {t.weekly.button}
           </button>
           <button type="button" className="btn-secondary full btn-sidebar-muted" onClick={() => fileRef.current?.click()}>
             {t.sidebar.importExcel}
@@ -707,7 +792,7 @@ function App() {
             {todayBreachedRules.length > 0 && (
               <span className="threshold-interrupt-rules">
                 {' '}
-                ({todayBreachedRules.map((r) => t.thresholds[THRESHOLD_LABEL_KEY[r.id]]).join(' · ')})
+                ({todayBreachedRules.map((r) => t.thresholds[THRESHOLD_LABEL_KEYS[r.id]]).join(' · ')})
               </span>
             )}
           </div>
@@ -743,6 +828,7 @@ function App() {
             tPeriod={t.period}
             sideLabels={t.side}
             displayAccount={displayAccount}
+            displayBalance={displayBalance}
             mismatchHint={financeMismatchHint}
             onSelectDate={handleSelectDate}
             dateLocale={dateLocale}
@@ -778,6 +864,7 @@ function App() {
               thresholdRules={thresholdRulesForDay}
               showGoals={hasAnyProfitGoal(settings)}
               showRules={isTradingRulesEnabled(settings)}
+              showGoalReachedMessage={settings.showGoalReachedMessage !== false}
               t={t.dayTab}
               tGoals={t.profitGoals}
             />
@@ -801,6 +888,7 @@ function App() {
                     </button>
                   </div>
                 </div>
+                {dayJournalStats && <DayTradeJournalBar stats={dayJournalStats} t={t.dayJournal} />}
                 {selectedDay && (selectedDay.openCount ?? 0) > 0 && selectedDate === todayKey && (
                   <p className="day-open-hint">
                     {t.daySummary.openToday}: {selectedDay.openCount} ·{' '}
@@ -818,6 +906,8 @@ function App() {
                         <th>{t.trades.symbol}</th>
                         <th>{t.trades.side}</th>
                         <th>{t.trades.netPnl}</th>
+                        <th>{t.dayJournal.colR}</th>
+                        <th>{t.dayJournal.colChecklist}</th>
                         <th>{t.trades.deductions}</th>
                         <th></th>
                         <th></th>
@@ -826,23 +916,59 @@ function App() {
                     <tbody>
                       {dayTrades.map((trade) => {
                         const meta = tradeMetaMap[journalTradeKey(trade)]
+                        const rr = effectiveRR(trade, meta)
+                        const hasJournal = tradeHasJournalMeta(meta)
+                        const cl = meta?.checklist
                         return (
                           <tr key={trade.id}>
                             <td>
                               {trade.symbol}
                               {meta?.tags?.length ? (
-                                <span className="hint-text"> · {meta.tags.join(', ')}</span>
+                                <span className="trade-tag-row">
+                                  {meta.tags.map((tag) => (
+                                    <span key={tag} className="trade-tag">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </span>
                               ) : null}
                             </td>
                             <td>{t.side[trade.side]}</td>
                             <td className={pnlClass(trade.pnl)}>{formatMoney(trade.pnl)}</td>
+                            <td className="trade-rr-cell">{rr != null ? `${rr.toFixed(1)}R` : '—'}</td>
+                            <td className="trade-checklist-cell">
+                              {cl ? (
+                                <span className="trade-checklist-badges">
+                                  <span
+                                    className={cl.hadSetup ? 'on' : 'off'}
+                                    title={t.journal.hadSetup}
+                                  >
+                                    S
+                                  </span>
+                                  <span
+                                    className={cl.respectedRisk ? 'on' : 'off'}
+                                    title={t.journal.respectedRisk}
+                                  >
+                                    R
+                                  </span>
+                                  <span
+                                    className={cl.inTradingHours ? 'on' : 'off'}
+                                    title={t.journal.inTradingHours}
+                                  >
+                                    H
+                                  </span>
+                                </span>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
                             <td className="negative">
                               {trade.fees > 0 ? `−$${trade.fees.toFixed(2)}` : '—'}
                             </td>
                             <td>
                               <button
                                 type="button"
-                                className="btn-ghost-sm"
+                                className={`btn-ghost-sm${hasJournal ? ' has-dot' : ''}`}
                                 onClick={() => setEditingTrade(trade)}
                               >
                                 {t.journal.journalBtn}
@@ -918,6 +1044,7 @@ function App() {
                 defaultOpen={insightsDefaultOpen}
                 showGoals={hasAnyProfitGoal(settings)}
                 showRules={isTradingRulesEnabled(settings)}
+                showGoalReachedMessage={settings.showGoalReachedMessage !== false}
                 profitGoals={profitGoalsForDay}
                 thresholdRules={thresholdRulesForDay}
                 t={t.dayTab}
@@ -959,6 +1086,17 @@ function App() {
           onClose={() => setShowDayNotes(false)}
           t={t.journal}
           tDay={t.dayTab}
+        />
+      )}
+
+      {showWeeklySummary && (
+        <WeeklySummaryModal
+          summary={weeklySummary}
+          weekNote={weekNote}
+          dateLocale={dateLocale}
+          t={t.weekly}
+          onSaveNote={saveWeekNote}
+          onClose={() => setShowWeeklySummary(false)}
         />
       )}
 

@@ -7,7 +7,7 @@ export const SUPPORTED_LANGUAGES: { code: AppLanguage; label: string }[] = [
 ]
 
 export interface Translations {
-  brand: { subtitle: string }
+  brand: { title: string; subtitle: string }
   language: { label: string }
   calendar: {
     prevMonth: string
@@ -57,6 +57,7 @@ export interface Translations {
     lastSync: string
     syncNow: string
     bridgeOfflineError: string
+    floatingShort: string
   }
   health: {
     title: string
@@ -286,6 +287,7 @@ export interface Translations {
     weeklyProfitGoal: string
     monthlyProfitGoal: string
     alertOnLossLimit: string
+    showGoalReachedMessage: string
     todayGoal: string
     weekGoal: string
     monthGoal: string
@@ -353,6 +355,7 @@ export interface Translations {
     restoreError: string
     notificationsTitle: string
     notificationsEnable: string
+    showGoalReachedMessage: string
     testNotification: string
     testNotifyBody: string
     syncTitle: string
@@ -456,6 +459,40 @@ export interface Translations {
     editNotes: string
     close: string
   }
+  weekly: {
+    title: string
+    button: string
+    weekRange: string
+    totalPnl: string
+    tradingDays: string
+    winRate: string
+    greenRed: string
+    bestDay: string
+    worstDay: string
+    topSymbols: string
+    repeat: string
+    avoid: string
+    focus: string
+    close: string
+    noTrades: string
+  }
+  notifications: {
+    ruleBreached: string
+    goalReached: string
+    mt5Disconnected: string
+    bridgeOffline: string
+  }
+  dayJournal: {
+    title: string
+    journaled: string
+    setupPct: string
+    riskPct: string
+    setupHint: string
+    riskHint: string
+    avgR: string
+    colR: string
+    colChecklist: string
+  }
   thresholds: {
     title: string
     subtitle: string
@@ -501,11 +538,37 @@ export interface Translations {
     actionIncrease: string
     actionHold: string
     actionDecrease: string
+    actionProtect: string
     actionInsufficient: string
+    todayReturn: string
+    todayTrades: string
+    avgDailyReturn: string
+    avgDailyHint: string
+    avgDailyEmpty: string
+    weekToDateReturn: string
     currentRisk: string
     suggestedRisk: string
+    suggestedRiskBalance: string
     suggestedRiskAmount: string
+    conservativeRiskRef: string
+    suggestedRiskHoldHint: string
     riskUnknown: string
+    currentRiskAmount: string
+    riskSourceJournal: string
+    riskSourceJournalAmount: string
+    riskSourceInferred: string
+    riskSourceImpliedWins: string
+    riskSourceDailySwing: string
+    riskSourceTodaySession: string
+    riskSourceDailyLimit: string
+    riskInferredHint: string
+    riskImpliedWinsHint: string
+    riskDailySwingHint: string
+    riskTodaySessionHint: string
+    riskDailyLimitPerTradeHint: string
+    riskAltLoss: string
+    riskJournalPartial: string
+    riskDailyLimit: string
     needMoreData: string
     disclaimer: string
     reasonInsufficientWeeks: string
@@ -522,5 +585,9 @@ export interface Translations {
     reasonRecentWeeksStrong: string
     reasonLossStreakWeeks: string
     reasonStableEdge: string
+    reasonDailyGainSpike: string
+    reasonDailyAvgPositive: string
+    reasonDailySwingElevated: string
+    reasonAccountGrowing: string
   }
 }

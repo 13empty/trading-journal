@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import type { Locale } from 'date-fns'
 import type { DayActivity } from '../types/account'
 import type { Translations } from '../i18n/types'
-import { formatMoney, pnlClass } from '../lib/aggregations'
+import { formatMoney, formatBalance, pnlClass } from '../lib/aggregations'
 import { formatMonthKey } from '../lib/dateDisplay'
 import {
   computeProgressProjection,
@@ -93,7 +93,7 @@ function ScopeTable({
             <tr key={h.days}>
               <td>{t.days.replace('{n}', String(h.days))}</td>
               <td className={pnlClass(h.projectedPnl)}>{formatMoney(h.projectedPnl)}</td>
-              <td>{formatMoney(h.projectedBalance).replace('+', '')}</td>
+              <td>{formatBalance(h.projectedBalance)}</td>
             </tr>
           ))}
         </tbody>
@@ -172,7 +172,7 @@ export function ProjectionPanel({ activities, startBalance, asOfDate, dateLocale
           </div>
           <div className="projection-hero-card">
             <span className="label">{t.startBalance}</span>
-            <span className="val">{formatMoney(startBalance).replace('+', '')}</span>
+            <span className="val">{formatBalance(startBalance)}</span>
             <span className="sub">{t.asOf.replace('{date}', asOfDate)}</span>
           </div>
         </div>

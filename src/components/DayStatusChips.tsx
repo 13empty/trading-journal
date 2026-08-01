@@ -7,6 +7,7 @@ interface Props {
   thresholdRules: ThresholdRuleState[]
   showGoals: boolean
   showRules: boolean
+  showGoalReachedMessage?: boolean
   t: Translations['dayTab']
   tGoals: Translations['profitGoals']
 }
@@ -24,6 +25,7 @@ export function DayStatusChips({
   thresholdRules,
   showGoals,
   showRules,
+  showGoalReachedMessage = true,
   t,
   tGoals,
 }: Props) {
@@ -31,7 +33,7 @@ export function DayStatusChips({
     ? profitGoals.filter(
         (g) =>
           g.status !== 'off' &&
-          (g.status === 'reached' || g.pct >= GOAL_CHIP_MIN_PCT),
+          (g.status === 'progress' ? g.pct >= GOAL_CHIP_MIN_PCT : showGoalReachedMessage),
       )
     : []
   const ruleWarns = showRules ? thresholdRules.filter((r) => r.status === 'warn').length : 0
@@ -47,7 +49,7 @@ export function DayStatusChips({
           title={`${tGoals[GOAL_LABEL[goal.id]]}: ${Math.round(goal.pct)}%`}
         >
           {tGoals[GOAL_LABEL[goal.id]]}
-          {goal.status === 'reached' ? (
+          {goal.status === 'reached' && showGoalReachedMessage ? (
             <span className="day-chip-badge ok">{tGoals.statusReached}</span>
           ) : (
             <span className="day-chip-badge">{Math.round(goal.pct)}%</span>

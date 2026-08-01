@@ -63,7 +63,7 @@ MetaTrader 5  →  mt5-sync.exe (Python)  →  bridge/server.mjs  →  React UI
 
 Sync log: `%APPDATA%\trading-journal\mt5-sync.log`
 
-## 4. UI overview (v1.2.1)
+## 4. UI overview (v1.2.2)
 
 ### Sidebar (calendar)
 

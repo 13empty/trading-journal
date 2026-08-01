@@ -1,6 +1,6 @@
 import type { AccountSummary } from '../types/account'
 import type { Translations } from '../i18n/types'
-import { formatMoney, pnlClass } from '../lib/aggregations'
+import { formatMoney, formatBalance, pnlClass } from '../lib/aggregations'
 
 interface Props {
   account: AccountSummary
@@ -23,7 +23,7 @@ export function AccountFinancePanel({ account, t, mismatchHint }: Props) {
         </li>
         <li>
           <span>{t.netDeposits}</span>
-          <span>{formatMoney(account.netCashIn).replace('+', '')}</span>
+          <span>{formatBalance(account.netCashIn)}</span>
         </li>
         <li className="sep">
           <span>{t.accountProfit}</span>

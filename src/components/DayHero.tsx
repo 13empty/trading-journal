@@ -2,7 +2,7 @@ import { formatDisplayDate } from '../lib/dateDisplay'
 import type { Locale } from 'date-fns'
 import type { DayActivity } from '../types/account'
 import type { Translations } from '../i18n/types'
-import { formatMoney, pnlClass } from '../lib/aggregations'
+import { formatMoney, formatBalance, pnlClass } from '../lib/aggregations'
 import { parseLocalDateKey } from '../lib/mt5Date'
 import { DayRecentSummary } from './DayRecentSummary'
 import { EquityCurve } from './EquityCurve'
@@ -68,7 +68,7 @@ export function DayHero({
       <div className="day-kpi-row">
         <div className="kpi-card hero-kpi">
           <span className="label">{t.balance}</span>
-          <span className="val">{formatMoney(displayBalance).replace('+', '')}</span>
+          <span className="val">{formatBalance(displayBalance)}</span>
         </div>
         <div className="kpi-card hero-kpi">
           <span className="label">{t.trades}</span>

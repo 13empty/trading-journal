@@ -5,6 +5,15 @@ import { parseLocalDateKey } from './mt5Date'
 
 export type ProfitGoalId = 'daily' | 'weekly' | 'monthly'
 
+export const PROFIT_GOAL_LABEL_KEYS: Record<
+  ProfitGoalId,
+  'daily' | 'weekly' | 'monthly'
+> = {
+  daily: 'daily',
+  weekly: 'weekly',
+  monthly: 'monthly',
+}
+
 export interface ProfitGoalState {
   id: ProfitGoalId
   status: 'off' | 'progress' | 'reached'

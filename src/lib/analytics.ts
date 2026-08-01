@@ -309,6 +309,7 @@ export function computeAdvancedMetrics(
 
   const rrValues: number[] = []
   const riskPctValues: number[] = []
+  const riskAmountValues: number[] = []
   const holdValues: number[] = []
 
   for (const t of trades) {
@@ -319,6 +320,7 @@ export function computeAdvancedMetrics(
     const bal = balanceByDate.get(t.date) ?? 0
     const rp = effectiveRiskPct(t, meta, bal)
     if (rp != null) riskPctValues.push(rp)
+    if (meta?.riskAmount != null && meta.riskAmount > 0) riskAmountValues.push(meta.riskAmount)
     const hold = tradeHoldMinutes(t)
     if (hold != null) holdValues.push(hold)
   }
@@ -332,6 +334,11 @@ export function computeAdvancedMetrics(
     avgRiskPct: riskPctValues.length
       ? riskPctValues.reduce((a, b) => a + b, 0) / riskPctValues.length
       : 0,
+    avgRiskAmount: riskAmountValues.length
+      ? riskAmountValues.reduce((a, b) => a + b, 0) / riskAmountValues.length
+      : 0,
+    riskPctSampleCount: riskPctValues.length,
+    riskAmountSampleCount: riskAmountValues.length,
     avgHoldMinutes: holdValues.length
       ? holdValues.reduce((a, b) => a + b, 0) / holdValues.length
       : 0,

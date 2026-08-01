@@ -1,4 +1,4 @@
-import { startOfWeek } from 'date-fns'
+import { startOfWeek, format } from 'date-fns'
 import type { Locale } from 'date-fns'
 import { useMemo, useState } from 'react'
 import type { AccountSummary, AppSettings, DayActivity } from '../types/account'
@@ -54,6 +54,7 @@ interface Props {
   tPeriod: Translations['period']
   sideLabels: Translations['side']
   displayAccount: AccountSummary
+  displayBalance: number
   mismatchHint?: string
   onSelectDate: (date: string) => void
   dateLocale: Locale
@@ -82,6 +83,7 @@ export function AnalyticsPanel({
   tPeriod,
   sideLabels,
   displayAccount,
+  displayBalance,
   mismatchHint,
   onSelectDate,
   dateLocale,
@@ -125,15 +127,32 @@ export function AnalyticsPanel({
   const weekStart = startOfWeek(refDate, { weekStartsOn: 1 })
   const weekPnl = weeklyPnl(activities, weekStart)
   const monthPnlValue = monthlyPnl(activities, refDate)
+  const balance = displayBalance > 0
+    ? displayBalance
+    : settings.brokerBalance ?? activities[activities.length - 1]?.endBalance ?? 0
   const riskAdvice = useMemo(() => {
     const weekly = computeWeeklyStats(activities, selectedDate)
+    const todayKey = format(new Date(), 'yyyy-MM-dd')
     return analyzeRiskAdvice({
+      activities,
+      asOfDate: selectedDate,
+      todayDate: todayKey,
       weekly,
       metrics,
       drawdown,
       tradeCount: filteredTrades.length,
+      balance,
+      dailyLossLimit: settings.dailyLossLimit,
     })
-  }, [activities, selectedDate, metrics, drawdown, filteredTrades.length])
+  }, [
+    activities,
+    selectedDate,
+    metrics,
+    drawdown,
+    filteredTrades.length,
+    balance,
+    settings.dailyLossLimit,
+  ])
   const alertKey = goalAlert(selectedDayPnl, settings)
 
   const pfLabel =
@@ -332,13 +351,25 @@ export function AnalyticsPanel({
             />
             {t.alertOnLossLimit}
           </label>
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={settings.showGoalReachedMessage !== false}
+              onChange={(e) =>
+                onSettingsChange({ ...settings, showGoalReachedMessage: e.target.checked })
+              }
+            />
+            {t.showGoalReachedMessage}
+          </label>
         </div>
         <div className="goal-progress">
           {settings.dailyProfitGoal != null && selectedDate && (
             <div className="goal-bar-wrap">
               <span>
                 {t.todayGoal}: {formatMoney(selectedDayPnl)} / {formatMoney(settings.dailyProfitGoal)}
-                {selectedDayPnl >= settings.dailyProfitGoal ? ` · ${t.goalReached}` : ''}
+                {selectedDayPnl >= settings.dailyProfitGoal && settings.showGoalReachedMessage !== false
+                  ? ` · ${t.goalReached}`
+                  : ''}
               </span>
               <div className="goal-bar">
                 <div
@@ -354,7 +385,9 @@ export function AnalyticsPanel({
             <div className="goal-bar-wrap">
               <span>
                 {t.weekGoal}: {formatMoney(weekPnl)} / {formatMoney(settings.weeklyProfitGoal)}
-                {weekPnl >= settings.weeklyProfitGoal ? ` · ${t.goalReached}` : ''}
+                {weekPnl >= settings.weeklyProfitGoal && settings.showGoalReachedMessage !== false
+                  ? ` · ${t.goalReached}`
+                  : ''}
               </span>
               <div className="goal-bar">
                 <div
@@ -370,7 +403,9 @@ export function AnalyticsPanel({
             <div className="goal-bar-wrap">
               <span>
                 {t.monthGoal}: {formatMoney(monthPnlValue)} / {formatMoney(settings.monthlyProfitGoal)}
-                {monthPnlValue >= settings.monthlyProfitGoal ? ` · ${t.goalReached}` : ''}
+                {monthPnlValue >= settings.monthlyProfitGoal && settings.showGoalReachedMessage !== false
+                  ? ` · ${t.goalReached}`
+                  : ''}
               </span>
               <div className="goal-bar">
                 <div
@@ -388,7 +423,7 @@ export function AnalyticsPanel({
       {filteredTrades.length > 0 && (
         <RiskAdvicePanel
           advice={riskAdvice}
-          balance={settings.brokerBalance ?? activities[activities.length - 1]?.endBalance ?? 0}
+          balance={balance}
           t={tRiskAdvice}
         />
       )}

@@ -7,6 +7,41 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.2] — 2026-08-01
+
+### Added / Añadido
+
+- **ES:** Notificaciones de escritorio (reglas, meta alcanzada, MT5 desconectado)  
+  **EN:** Desktop notifications (rules, goal reached, MT5 disconnect)
+- **ES:** Barra de journal en pestaña Día (setup %, riesgo %, R promedio)  
+  **EN:** Trade journal stats bar on Day tab (setup %, risk %, avg R)
+- **ES:** Resumen semanal en sidebar con notas por semana  
+  **EN:** Weekly summary modal from sidebar with per-week notes
+- **ES:** Toggle para mostrar/ocultar aviso de meta alcanzada (Ajustes y Analíticas)  
+  **EN:** Toggle to show/hide profit-goal-reached messages (Settings and Analytics)
+- **ES:** Panel de riesgo: rendimiento diario (hoy, promedio, semana en curso)  
+  **EN:** Risk panel: daily performance (today, average, week-to-date)
+- **ES:** Riesgo sugerido anclado al saldo real (1% conservador, cálculo explícito $)  
+  **EN:** Balance-based suggested risk (1% conservative default, explicit $ formula)
+
+### Changed / Cambiado
+
+- **ES:** Riesgo actual estimado con sesión de hoy, límite diario y ganancias/R:R  
+  **EN:** Current risk estimate uses today’s session, daily limit, and wins/R:R
+- **ES:** Recomendación “proteger ganancias” separada del tamaño por trade  
+  **EN:** “Protect gains” advice decoupled from per-trade sizing
+- **ES:** Saldo MT5 en vivo usado en Analíticas para montos de riesgo  
+  **EN:** Live MT5 balance used in Analytics for risk dollar amounts
+
+### Fixed / Corregido
+
+- **ES:** Monto sugerido ($) ahora coincide con saldo × % (sin cifras incoherentes)  
+  **EN:** Suggested $ amount now matches balance × % (no mismatched figures)
+- **ES:** Script `build-ejecutable.ps1` evita bloqueo por `app.asar` en release  
+  **EN:** `build-ejecutable.ps1` avoids locked `app.asar` during portable build
+
+---
+
 ## [1.2.1] — 2026-07-31
 
 ### Added / Añadido

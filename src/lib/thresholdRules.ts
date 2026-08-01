@@ -1,5 +1,7 @@
-import type { TrackingGoals, EquityPoint, ThresholdRuleState } from '../types/journal'
+import type { TrackingGoals, EquityPoint, ThresholdRuleState, ThresholdRuleId } from '../types/journal'
 import type { Trade } from '../types/trade'
+import type { DayActivity } from '../types/account'
+import type { Translations } from '../i18n/types'
 import { parseTradeDateTime } from './analytics'
 import { parseLocalDateKey } from './mt5Date'
 
@@ -159,4 +161,35 @@ export function evaluateThresholdRules(input: {
 
 export function hasThresholdWarning(rules: ThresholdRuleState[]): boolean {
   return rules.some((r) => r.status === 'warn')
+}
+
+export const THRESHOLD_LABEL_KEYS: Record<
+  ThresholdRuleId,
+  keyof Translations['thresholds']
+> = {
+  daily_loss: 'dailyLoss',
+  max_trades: 'maxTrades',
+  revenge_risk: 'revengeRisk',
+  drawdown_peak: 'drawdownPeak',
+}
+
+export function evaluateThresholdRulesForDate(input: {
+  settings: TrackingGoals
+  date: string
+  todayKey: string
+  dayPnl: number
+  dayTrades: Trade[]
+  equityCurve: EquityPoint[]
+  day?: DayActivity
+}): ThresholdRuleState[] {
+  const isToday = input.date === input.todayKey
+  return evaluateThresholdRules({
+    settings: input.settings,
+    dayPnl: input.dayPnl,
+    dayTrades: input.dayTrades,
+    equityCurve: input.equityCurve,
+    todayKey: input.todayKey,
+    todayDay: isToday ? input.day : undefined,
+    openCount: isToday ? (input.day?.openCount ?? 0) : 0,
+  })
 }

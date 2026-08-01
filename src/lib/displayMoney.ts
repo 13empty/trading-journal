@@ -1,19 +1,3 @@
-/** Dinero que entra a la cuenta (depósitos) */
-export function formatInflow(amount: number): string {
-  if (amount <= 0) return '—'
-  return `$${amount.toFixed(2)}`
-}
-
-/** Dinero que sale de la cuenta (retiros) — monto positivo, no es una pérdida de trading */
-export function formatOutflow(amount: number): string {
-  if (amount <= 0) return '—'
-  return `$${amount.toFixed(2)}`
-}
-
-export function outflowHint(): string {
-  return 'Dinero que retiraste de la cuenta (reduce el saldo en MT5; no es pérdida de trades).'
-}
-
 import { cashMovementKey } from './mergeTrades'
 import type { DayActivity } from '../types/account'
 

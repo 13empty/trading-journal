@@ -9,7 +9,7 @@ import { parseLocalDateKey } from './mt5Date'
 import { formatDisplayDate } from './dateDisplay'
 import type { Locale } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { Trade, PeriodView, PeriodSummary, DaySummary } from '../types/trade'
+import type { Trade, PeriodView, PeriodSummary } from '../types/trade'
 
 export function groupByPeriod(
   trades: Trade[],
@@ -58,26 +58,14 @@ export function groupByPeriod(
     .sort((a, b) => b.key.localeCompare(a.key))
 }
 
-export function dailyTotals(trades: Trade[]): DaySummary[] {
-  const map = new Map<string, { pnl: number; trades: number }>()
-  for (const t of trades) {
-    const cur = map.get(t.date) ?? { pnl: 0, trades: 0 }
-    cur.pnl += t.pnl
-    cur.trades += 1
-    map.set(t.date, cur)
-  }
-  return [...map.entries()]
-    .map(([date, v]) => ({ date, pnl: v.pnl, trades: v.trades }))
-    .sort((a, b) => b.date.localeCompare(a.date))
-}
-
-export function totalPnl(trades: Trade[]): number {
-  return trades.reduce((s, t) => s + t.pnl, 0)
-}
-
 export function winRate(trades: Trade[]): number {
   if (trades.length === 0) return 0
   return (trades.filter((t) => t.pnl >= 0).length / trades.length) * 100
+}
+
+/** Balance display without leading + sign */
+export function formatBalance(n: number): string {
+  return formatMoney(n).replace('+', '')
 }
 
 export function formatMoney(n: number): string {

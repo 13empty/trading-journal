@@ -105,7 +105,7 @@ export function Mt5StatusPanel({
               {openPositions.length > 0 && (
                 <span className={pnlClass(floatingPnl)}>
                   {' '}
-                  · {formatMoney(floatingPnl)} flot.
+                  · {formatMoney(floatingPnl)} {mt5.floatingShort}
                 </span>
               )}
             </p>

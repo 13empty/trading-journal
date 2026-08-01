@@ -3,6 +3,81 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $root
 
+function Stop-BlockingAppProcesses {
+  $stopped = $false
+
+  foreach ($proc in Get-Process -ErrorAction SilentlyContinue) {
+    $name = $proc.ProcessName
+    $shouldStop = $false
+
+    if ($name -eq 'Trading-Journal') {
+      $shouldStop = $true
+    } elseif ($name -eq 'electron') {
+      try {
+        $exePath = $proc.Path
+        if ($exePath -and ($exePath -match 'trading-journal|Trading-Journal|release\\win-unpacked')) {
+          $shouldStop = $true
+        }
+      } catch {
+        # Path not available for some processes — skip
+      }
+    }
+
+    if ($shouldStop) {
+      Write-Host "Cerrando proceso en uso: $name (PID $($proc.Id))"
+      Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+      $stopped = $true
+    }
+  }
+
+  if ($stopped) {
+    Start-Sleep -Seconds 2
+  }
+}
+
+function Get-PackOutputDir {
+  param([Parameter(Mandatory)][string]$ReleaseDir)
+
+  $staging = Join-Path $ReleaseDir 'pack-staging'
+  if (Test-Path -LiteralPath $staging) {
+    try {
+      Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction Stop
+    } catch {
+      $staging = Join-Path $ReleaseDir ("pack-" + (Get-Date -Format 'yyyyMMddHHmmss'))
+      Write-Host "pack-staging en uso; usando carpeta alternativa: $staging" -ForegroundColor Yellow
+    }
+  }
+  New-Item -ItemType Directory -Path $staging -Force | Out-Null
+  return $staging
+}
+
+function Clear-ElectronBuildOutput {
+  param([Parameter(Mandatory)][string]$ReleaseDir)
+
+  Stop-BlockingAppProcesses
+
+  $portable = Join-Path $ReleaseDir 'Trading-Journal.exe'
+  if (Test-Path -LiteralPath $portable) {
+    try {
+      Remove-Item -LiteralPath $portable -Force -ErrorAction Stop
+      Write-Host "Eliminado: $portable"
+    } catch {
+      Write-Host "AVISO: no se pudo borrar $portable (se sobrescribira al final)." -ForegroundColor Yellow
+    }
+  }
+}
+
+function Invoke-ElectronPack {
+  param([Parameter(Mandatory)][string]$OutputDir)
+
+  $cmd = "npx electron-builder --win portable --config electron-builder.yml --config.directories.output=$OutputDir"
+  Write-Host "> $cmd"
+  & npx electron-builder --win portable --config electron-builder.yml "--config.directories.output=$OutputDir"
+  if ($LASTEXITCODE -ne 0) {
+    throw "electron-builder fallo (codigo $LASTEXITCODE)"
+  }
+}
+
 function Invoke-Npm {
   param([Parameter(Mandatory)][string[]]$NpmArgs)
 
@@ -37,7 +112,19 @@ if (Test-Path $bridgeState) {
 }
 
 Write-Host "`n=== 3/3 Empaquetando aplicacion portable (5-15 min) ==="
-Invoke-Npm -NpmArgs @("run", "pack:portable")
+$releaseDir = Join-Path $root "release"
+Clear-ElectronBuildOutput -ReleaseDir $releaseDir
+$packOut = Get-PackOutputDir -ReleaseDir $releaseDir
+Write-Host "Salida temporal del empaquetado: $packOut"
+Invoke-ElectronPack -OutputDir $packOut
+
+$builtPortable = Join-Path $packOut "Trading-Journal.exe"
+$finalPortable = Join-Path $releaseDir "Trading-Journal.exe"
+if (-not (Test-Path -LiteralPath $builtPortable)) {
+  throw "No se genero Trading-Journal.exe en $packOut"
+}
+Copy-Item -LiteralPath $builtPortable -Destination $finalPortable -Force
+Write-Host "Copiado a: $finalPortable"
 
 Write-Host "`n=== LISTO ==="
 $release = Join-Path $root "release"

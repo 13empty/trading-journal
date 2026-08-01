@@ -1,17 +1,11 @@
 import type { ThresholdRuleState } from '../types/journal'
+import { THRESHOLD_LABEL_KEYS } from '../lib/thresholdRules'
 import type { Translations } from '../i18n/types'
 
 interface Props {
   rules: ThresholdRuleState[]
   t: Translations['thresholds']
   compact?: boolean
-}
-
-const LABEL_KEY: Record<ThresholdRuleState['id'], keyof Translations['thresholds']> = {
-  daily_loss: 'dailyLoss',
-  max_trades: 'maxTrades',
-  revenge_risk: 'revengeRisk',
-  drawdown_peak: 'drawdownPeak',
 }
 
 export function ThresholdRulesPanel({ rules, t, compact = false }: Props) {
@@ -47,7 +41,7 @@ export function ThresholdRulesPanel({ rules, t, compact = false }: Props) {
       <ul className="threshold-rules-list">
         {rules.map((rule) => (
           <li key={rule.id} className={`threshold-rule threshold-${rule.status}`}>
-            <span className="threshold-rule-name">{t[LABEL_KEY[rule.id]]}</span>
+            <span className="threshold-rule-name">{t[THRESHOLD_LABEL_KEYS[rule.id]]}</span>
             <span className={`threshold-rule-status threshold-status-${rule.status}`}>
               {statusLabel(rule.status)}
             </span>

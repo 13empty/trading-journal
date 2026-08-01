@@ -9,6 +9,7 @@ interface Props {
   defaultOpen: boolean
   showGoals: boolean
   showRules: boolean
+  showGoalReachedMessage?: boolean
   profitGoals: ProfitGoalState[]
   thresholdRules: ThresholdRuleState[]
   t: Translations['dayTab']
@@ -20,6 +21,7 @@ export function DayInsightsSection({
   defaultOpen,
   showGoals,
   showRules,
+  showGoalReachedMessage = true,
   profitGoals,
   thresholdRules,
   t,
@@ -40,7 +42,14 @@ export function DayInsightsSection({
         <span className="day-insights-hint">{t.insightsHint}</span>
       </summary>
       <div className="day-insights-body">
-        {hasGoalsPanel && <ProfitGoalsPanel goals={profitGoals} t={tGoals} compact />}
+        {hasGoalsPanel && (
+          <ProfitGoalsPanel
+            goals={profitGoals}
+            t={tGoals}
+            compact
+            showGoalReachedMessage={showGoalReachedMessage}
+          />
+        )}
         {hasRulesPanel && (
           <ThresholdRulesPanel rules={thresholdRules} t={tThresholds} compact />
         )}

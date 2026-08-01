@@ -22,6 +22,12 @@ export interface DailyNote {
   whatFailed: string
 }
 
+export interface WeeklyNote {
+  repeat: string
+  avoid: string
+  focus: string
+}
+
 export interface TrackingGoals {
   dailyProfitGoal?: number
   dailyLossLimit?: number
@@ -38,6 +44,8 @@ export interface TrackingGoals {
   alertOnThresholds?: boolean
   /** Master switch: show rules panel, interrupts, and threshold alerts */
   tradingRulesEnabled?: boolean
+  /** Desktop + UI message when a profit goal is reached */
+  showGoalReachedMessage?: boolean
 }
 
 export type ThresholdRuleId = 'daily_loss' | 'max_trades' | 'revenge_risk' | 'drawdown_peak'
@@ -110,5 +118,8 @@ export interface AdvancedMetrics {
   avgLoss: number
   avgRR: number
   avgRiskPct: number
+  avgRiskAmount: number
+  riskPctSampleCount: number
+  riskAmountSampleCount: number
   avgHoldMinutes: number
 }

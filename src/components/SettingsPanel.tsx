@@ -17,6 +17,7 @@ import {
   type DesktopAppInfo,
 } from '../lib/desktop'
 import { reloadBridgeFromDisk } from '../lib/mt5Bridge'
+import { APP_VERSION } from '../lib/appVersion'
 
 interface Props {
   settings: AppSettings
@@ -112,7 +113,7 @@ export function SettingsPanel({
         <ul className="settings-list">
           <li>
             <span>{t.version}</span>
-            <span>{info?.version ?? '1.1.0 (web)'}</span>
+            <span>{info?.version ?? `${APP_VERSION} (web)`}</span>
           </li>
           <li>
             <span>{t.mode}</span>
@@ -279,6 +280,16 @@ export function SettingsPanel({
             }
           />
           {t.notificationsEnable}
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={settings.showGoalReachedMessage !== false}
+            onChange={(e) =>
+              onSettingsChange({ ...settings, showGoalReachedMessage: e.target.checked })
+            }
+          />
+          {t.showGoalReachedMessage}
         </label>
         <button type="button" className="btn-ghost-sm" onClick={testNotify}>
           {t.testNotification}
