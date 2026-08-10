@@ -202,7 +202,7 @@ export const es: Translations = {
     brokerBalance: 'Saldo broker:',
   },
   side: { long: 'long', short: 'short' },
-  nav: { day: 'Día', analytics: 'Analytics', projection: 'Proyección', settings: 'Ajustes' },
+  nav: { day: 'Día', analytics: 'Analytics', projection: 'Proyección', settings: 'Opciones' },
   projection: {
     title: 'Proyección de progreso',
     subtitle:
@@ -273,6 +273,7 @@ export const es: Translations = {
     peak: 'Pico',
     trough: 'Valle',
     goalsTitle: 'Objetivos',
+    goalsEditInOptions: 'Edita metas y límites en la pestaña Opciones.',
     dailyProfitGoal: 'Meta diaria ($)',
     dailyLossLimit: 'Límite pérdida diaria ($)',
     weeklyProfitGoal: 'Meta semanal ($)',
@@ -323,6 +324,20 @@ export const es: Translations = {
     allAccounts: 'Todas las cuentas',
   },
   settings: {
+    pageTitle: 'Opciones',
+    pageSubtitle: 'Idioma, apariencia, metas, reglas de riesgo y sync — todo en un solo lugar.',
+    appearanceTitle: 'Apariencia',
+    accentColor: 'Color de acento',
+    accent_blue: 'Azul',
+    accent_teal: 'Turquesa',
+    accent_green: 'Verde',
+    accent_amber: 'Ámbar',
+    accent_rose: 'Rosa',
+    goalsTitle: 'Metas de ganancia',
+    goalsHint: 'Objetivos de beneficio. El progreso se ve en Analytics y en la pestaña Día.',
+    dailyProfitGoal: 'Meta diaria ($)',
+    weeklyProfitGoal: 'Meta semanal ($)',
+    monthlyProfitGoal: 'Meta mensual ($)',
     aboutTitle: 'Acerca de',
     version: 'Versión',
     mode: 'Modo',
@@ -334,7 +349,7 @@ export const es: Translations = {
     step1: 'Abre MetaTrader 5 e inicia sesión en tu cuenta.',
     step2: 'El .exe inicia solo el puente y la sync — espera 10–30 s.',
     step3: 'Usa el calendario: clic en un día para ver trades y notas.',
-    step4: 'Haz backup periódico en Ajustes → Exportar backup.',
+    step4: 'Haz backup periódico en Opciones → Exportar backup.',
     showWelcome: 'Ver guía de bienvenida',
     backupTitle: 'Backup de datos',
     backupHint: 'Guarda trades, movimientos, notas y journal. Restaura en otro PC o tras reinstalar.',
@@ -375,6 +390,10 @@ export const es: Translations = {
     maxDrawdownPct: 'Límite drawdown desde pico (%)',
     alertOnThresholds: 'Alerta cuando se rompe una regla',
     enableTradingRules: 'Activar reglas de trading (panel del día + alertas STOP)',
+    autoCloseOnDayRule:
+      'Cerrar todas las posiciones abiertas si se viola una regla del día',
+    autoCloseOnDayRuleHint:
+      'Solo reglas diarias: límite de pérdida del día o máximo de trades. Requiere sync Python + MT5 abierto. Actúa una vez por día.',
   },
   welcome: {
     title: 'Bienvenido a Trading Journal',
@@ -472,6 +491,7 @@ export const es: Translations = {
     goalReached: 'Meta {goal} alcanzada: {amount}',
     mt5Disconnected: 'MetaTrader 5 desconectado. Abre MT5 e inicia sesión.',
     bridgeOffline: 'Puente MT5 apagado. Reinicia la app o ejecuta npm run bridge.',
+    positionsClosed: 'Cierre automático enviado a MT5 por regla del día ({rule}).',
   },
   dayJournal: {
     title: 'Journal del día',

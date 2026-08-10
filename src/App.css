@@ -1523,6 +1523,17 @@ font-size:.88rem}
 .profit-status-progress{color:var(--muted)}
 .profit-status-reached{color:var(--green)}
 .profit-goal-amount{display:block;font-size:.78rem;margin-bottom:.35rem}
+.settings-page-head{margin:0 0 1rem}
+.settings-page-head h2{margin:0 0 .25rem;font-size:1.25rem}
+.accent-picker{margin-top:.75rem}
+.accent-picker .label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:.4rem}
+.accent-swatches{display:flex;gap:.5rem;flex-wrap:wrap}
+.accent-swatch{
+  width:1.75rem;height:1.75rem;border-radius:999px;border:2px solid transparent;
+  cursor:pointer;padding:0;box-shadow:inset 0 0 0 1px #0004
+}
+.accent-swatch.active{border-color:var(--text);box-shadow:0 0 0 2px var(--accent-dim)}
+.settings-danger-toggle{margin-top:.5rem;color:var(--text)}
 .risk-advice-panel{margin-bottom:.65rem}
 .risk-daily-grid{margin-bottom:.65rem}
 @media(min-width:721px){.risk-daily-grid:has(.risk-week-stat){grid-template-columns:1fr 1fr 1fr}}

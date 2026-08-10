@@ -46,6 +46,11 @@ export interface TrackingGoals {
   tradingRulesEnabled?: boolean
   /** Desktop + UI message when a profit goal is reached */
   showGoalReachedMessage?: boolean
+  /**
+   * Close all open MT5 positions when a DAY rule is breached
+   * (daily loss limit or max trades per day only).
+   */
+  autoCloseOnDayRule?: boolean
 }
 
 export type ThresholdRuleId = 'daily_loss' | 'max_trades' | 'revenge_risk' | 'drawdown_peak'

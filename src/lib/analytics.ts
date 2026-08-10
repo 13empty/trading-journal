@@ -408,8 +408,14 @@ export function feesByDay(trades: Trade[]): Map<string, { fees: number; swap: nu
 
 export function goalAlert(
   dayPnl: number,
-  goals: { dailyLossLimit?: number; alertOnLossLimit?: boolean },
+  goals: {
+    dailyLossLimit?: number
+    alertOnLossLimit?: boolean
+    tradingRulesEnabled?: boolean
+  },
 ): string | null {
+  // Match day-tab rules: master switch must be on
+  if (goals.tradingRulesEnabled !== true) return null
   if (!goals.alertOnLossLimit || !goals.dailyLossLimit) return null
   if (dayPnl <= -Math.abs(goals.dailyLossLimit)) {
     return 'loss_limit'

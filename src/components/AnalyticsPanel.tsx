@@ -42,7 +42,7 @@ interface Props {
   trades: Trade[]
   activities: DayActivity[]
   settings: AppSettings
-  onSettingsChange: (s: AppSettings) => void
+  onSettingsChange?: (s: AppSettings) => void
   metaMap: Record<string, TradeMeta>
   selectedDate: string
   selectedDayPnl: number
@@ -71,7 +71,6 @@ export function AnalyticsPanel({
   trades,
   activities,
   settings,
-  onSettingsChange,
   metaMap,
   selectedDate,
   selectedDayPnl,
@@ -153,7 +152,11 @@ export function AnalyticsPanel({
     balance,
     settings.dailyLossLimit,
   ])
+  // Loss-limit banner can use live PnL; profit-goal bars use closed only
   const alertKey = goalAlert(selectedDayPnl, settings)
+  const selectedClosedPnl =
+    activities.find((a) => a.date === selectedDate)?.pnl ??
+    selectedDayPnl
 
   const pfLabel =
     metrics.profitFactor === Infinity ? '∞' : metrics.profitFactor.toFixed(2)
@@ -284,98 +287,23 @@ export function AnalyticsPanel({
 
       <section className="panel analytics-section">
         <h3>{t.goalsTitle}</h3>
-        <div className="goals-grid">
-          <label>
-            {t.dailyProfitGoal}
-            <input
-              type="number"
-              step="any"
-              value={settings.dailyProfitGoal ?? ''}
-              onChange={(e) =>
-                onSettingsChange({
-                  ...settings,
-                  dailyProfitGoal: parseFloat(e.target.value) || undefined,
-                })
-              }
-            />
-          </label>
-          <label>
-            {t.dailyLossLimit}
-            <input
-              type="number"
-              step="any"
-              value={settings.dailyLossLimit ?? ''}
-              onChange={(e) =>
-                onSettingsChange({
-                  ...settings,
-                  dailyLossLimit: parseFloat(e.target.value) || undefined,
-                })
-              }
-            />
-          </label>
-          <label>
-            {t.weeklyProfitGoal}
-            <input
-              type="number"
-              step="any"
-              value={settings.weeklyProfitGoal ?? ''}
-              onChange={(e) =>
-                onSettingsChange({
-                  ...settings,
-                  weeklyProfitGoal: parseFloat(e.target.value) || undefined,
-                })
-              }
-            />
-          </label>
-          <label>
-            {t.monthlyProfitGoal}
-            <input
-              type="number"
-              step="any"
-              value={settings.monthlyProfitGoal ?? ''}
-              onChange={(e) =>
-                onSettingsChange({
-                  ...settings,
-                  monthlyProfitGoal: parseFloat(e.target.value) || undefined,
-                })
-              }
-            />
-          </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={settings.alertOnLossLimit ?? false}
-              onChange={(e) =>
-                onSettingsChange({ ...settings, alertOnLossLimit: e.target.checked })
-              }
-            />
-            {t.alertOnLossLimit}
-          </label>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={settings.showGoalReachedMessage !== false}
-              onChange={(e) =>
-                onSettingsChange({ ...settings, showGoalReachedMessage: e.target.checked })
-              }
-            />
-            {t.showGoalReachedMessage}
-          </label>
-        </div>
+        <p className="hint-inline">{t.goalsEditInOptions}</p>
         <div className="goal-progress">
           {settings.dailyProfitGoal != null && selectedDate && (
             <div className="goal-bar-wrap">
               <span>
-                {t.todayGoal}: {formatMoney(selectedDayPnl)} / {formatMoney(settings.dailyProfitGoal)}
-                {selectedDayPnl >= settings.dailyProfitGoal && settings.showGoalReachedMessage !== false
+                {t.todayGoal}: {formatMoney(selectedClosedPnl)} /{' '}
+                {formatMoney(settings.dailyProfitGoal)}
+                {selectedClosedPnl >= settings.dailyProfitGoal &&
+                settings.showGoalReachedMessage !== false
                   ? ` · ${t.goalReached}`
                   : ''}
               </span>
               <div className="goal-bar">
                 <div
-                  className={`goal-fill ${pnlClass(selectedDayPnl)}`}
+                  className={`goal-fill ${pnlClass(selectedClosedPnl)}`}
                   style={{
-                    width: `${Math.min(100, Math.max(0, (selectedDayPnl / settings.dailyProfitGoal) * 100))}%`,
+                    width: `${Math.min(100, Math.max(0, (selectedClosedPnl / settings.dailyProfitGoal) * 100))}%`,
                   }}
                 />
               </div>

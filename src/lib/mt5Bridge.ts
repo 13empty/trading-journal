@@ -56,6 +56,82 @@ export async function reloadBridgeFromDisk(): Promise<boolean> {
   }
 }
 
+export interface CloseAllResult {
+  ok: boolean
+  queued?: boolean
+  commandId?: string
+  error?: string
+  alreadyQueued?: boolean
+}
+
+export interface CloseAllCommandResult {
+  ok: boolean
+  pending?: boolean
+  idle?: boolean
+  closed?: number
+  failed?: number
+  commandId?: string
+  errors?: string[]
+  error?: string
+}
+
+/** Ask the local bridge to queue a close-all for the Python MT5 agent. */
+export async function requestCloseAllPositions(reason = 'day_rule'): Promise<CloseAllResult> {
+  try {
+    const res = await fetch(`${BRIDGE_URL}/api/close-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason }),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` }
+    const data = (await res.json()) as {
+      ok?: boolean
+      alreadyQueued?: boolean
+      command?: { id?: string }
+    }
+    return {
+      ok: Boolean(data.ok),
+      queued: true,
+      alreadyQueued: Boolean(data.alreadyQueued),
+      commandId: data.command?.id,
+    }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/** Poll until Python reports the close-all result (or timeout). */
+export async function waitForCloseAllResult(
+  commandId: string | undefined,
+  timeoutMs = 45_000,
+): Promise<CloseAllCommandResult> {
+  const started = Date.now()
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const res = await fetch(`${BRIDGE_URL}/api/command/result`, {
+        signal: AbortSignal.timeout(4000),
+      })
+      if (res.ok) {
+        const data = (await res.json()) as CloseAllCommandResult
+        if (data.pending) {
+          // still running
+        } else if (data.idle && !data.commandId) {
+          // no result yet / already cleared without match — keep waiting a bit
+        } else if (commandId && data.commandId && data.commandId !== commandId) {
+          // different command
+        } else if (!data.pending) {
+          return data
+        }
+      }
+    } catch {
+      /* retry */
+    }
+    await new Promise((r) => setTimeout(r, 1000))
+  }
+  return { ok: false, pending: true, error: 'timeout', commandId }
+}
+
 export async function fetchMt5Sync(): Promise<Mt5SyncPayload | null> {
   try {
     const res = await fetch(`${BRIDGE_URL}/api/sync`, { signal: AbortSignal.timeout(15000) })

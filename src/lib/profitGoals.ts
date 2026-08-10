@@ -22,12 +22,18 @@ export interface ProfitGoalState {
   pct: number
 }
 
+/** Closed PnL only — excludes floating so goals don't flicker with open trades. */
+export function closedDayPnl(activity: DayActivity | undefined): number {
+  if (!activity) return 0
+  return activity.pnl - (activity.livePnl ?? 0)
+}
+
 export function periodPnl(
   dayMap: Map<string, DayActivity>,
   selectedDate: string,
   period: 'day' | 'week' | 'month',
 ): number {
-  if (period === 'day') return dayMap.get(selectedDate)?.pnl ?? 0
+  if (period === 'day') return closedDayPnl(dayMap.get(selectedDate))
 
   const d = parseLocalDateKey(selectedDate)
   if (period === 'week') {
@@ -35,7 +41,7 @@ export function periodPnl(
     const endKey = format(endOfWeek(d, { weekStartsOn: 1 }), 'yyyy-MM-dd')
     let total = 0
     for (const [date, activity] of dayMap) {
-      if (date >= startKey && date <= endKey) total += activity.pnl
+      if (date >= startKey && date <= endKey) total += closedDayPnl(activity)
     }
     return total
   }
@@ -43,7 +49,7 @@ export function periodPnl(
   const monthKey = format(d, 'yyyy-MM')
   let total = 0
   for (const [date, activity] of dayMap) {
-    if (date.startsWith(monthKey)) total += activity.pnl
+    if (date.startsWith(monthKey)) total += closedDayPnl(activity)
   }
   return total
 }

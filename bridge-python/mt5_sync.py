@@ -29,6 +29,7 @@ except ImportError:
     raise
 
 BRIDGE_URL = "http://127.0.0.1:3847/api/event"
+BRIDGE_BASE = "http://127.0.0.1:3847"
 POLL_SEC = 1
 HISTORY_DAYS = 365
 FULL_SYNC_SEC = 60
@@ -508,6 +509,116 @@ def heartbeat() -> None:
     )
 
 
+def _filling_modes(symbol: str) -> list[int]:
+    info = mt5.symbol_info(symbol)
+    modes: list[int] = []
+    if info is None:
+        return [mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK, mt5.ORDER_FILLING_RETURN]
+    # Prefer IOC → FOK → RETURN depending on symbol flags
+    filling = int(getattr(info, "filling_mode", 0) or 0)
+    if filling & 1:
+        modes.append(mt5.ORDER_FILLING_FOK)
+    if filling & 2:
+        modes.append(mt5.ORDER_FILLING_IOC)
+    if filling & 4:
+        modes.append(mt5.ORDER_FILLING_RETURN)
+    return modes or [mt5.ORDER_FILLING_IOC, mt5.ORDER_FILLING_FOK, mt5.ORDER_FILLING_RETURN]
+
+
+def close_position(position: Any) -> tuple[bool, str]:
+    """Close a single MT5 position with market deal (opposite side)."""
+    symbol = position.symbol
+    ticket = int(position.ticket)
+    volume = float(position.volume)
+    is_buy = position.type == mt5.POSITION_TYPE_BUY
+    order_type = mt5.ORDER_TYPE_SELL if is_buy else mt5.ORDER_TYPE_BUY
+
+    if not mt5.symbol_select(symbol, True):
+        return False, f"{ticket}: cannot select {symbol}"
+
+    tick = mt5.symbol_info_tick(symbol)
+    if tick is None:
+        return False, f"{ticket}: no tick for {symbol}"
+
+    price = float(tick.bid if is_buy else tick.ask)
+    last_err = "unknown"
+    for filling in _filling_modes(symbol):
+        request = {
+            "action": mt5.TRADE_ACTION_DEAL,
+            "position": ticket,
+            "symbol": symbol,
+            "volume": volume,
+            "type": order_type,
+            "price": price,
+            "deviation": 30,
+            "magic": 3847,
+            "comment": "TJ day-rule close",
+            "type_time": mt5.ORDER_TIME_GTC,
+            "type_filling": filling,
+        }
+        result = mt5.order_send(request)
+        if result is None:
+            last_err = str(mt5.last_error())
+            continue
+        if result.retcode == mt5.TRADE_RETCODE_DONE:
+            return True, f"{ticket}: closed"
+        last_err = f"{result.retcode} {getattr(result, 'comment', '')}"
+    return False, f"{ticket}: {last_err}"
+
+
+def close_all_positions() -> dict[str, Any]:
+    positions = mt5.positions_get()
+    if not positions:
+        return {"ok": True, "closed": 0, "failed": 0, "errors": []}
+
+    closed = 0
+    failed = 0
+    errors: list[str] = []
+    for p in positions:
+        ok, msg = close_position(p)
+        print(f"  close_all: {msg}", flush=True)
+        if ok:
+            closed += 1
+        else:
+            failed += 1
+            errors.append(msg)
+    return {"ok": failed == 0, "closed": closed, "failed": failed, "errors": errors}
+
+
+def poll_bridge_commands() -> None:
+    """Execute pending bridge commands (close_all from day rules)."""
+    try:
+        r = requests.get(f"{BRIDGE_BASE}/api/command", timeout=3)
+        if r.status_code != 200:
+            return
+        cmd = r.json()
+    except requests.RequestException:
+        return
+
+    action = cmd.get("action")
+    if not action:
+        return
+
+    print(f"Comando bridge: {action} ({cmd.get('id')})", flush=True)
+    if action == "close_all":
+        result = close_all_positions()
+        result["commandId"] = cmd.get("id")
+        result["reason"] = cmd.get("reason")
+        try:
+            requests.post(
+                f"{BRIDGE_BASE}/api/command/result",
+                json=result,
+                timeout=5,
+            )
+        except requests.RequestException as e:
+            print(f"  No se pudo reportar resultado: {e}", flush=True)
+        # Refresh open positions snapshot after closes
+        sync_open_positions_snapshot()
+        heartbeat()
+    else:
+        print(f"  Comando desconocido: {action}", flush=True)
+
+
 def connect_mt5(max_wait_sec: int = 180) -> bool:
     print("Conectando a MetaTrader 5...", flush=True)
     deadline = time.time() + max_wait_sec
@@ -546,6 +657,7 @@ def main() -> None:
 
     try:
         while True:
+            poll_bridge_commands()
             sync_open_positions_snapshot()
             sync_new_trades()
             if time.time() - last_recent > RECENT_RESYNC_SEC:

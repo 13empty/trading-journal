@@ -234,11 +234,16 @@ function computeSuggestedFromBalance(
     suggestedRiskPct = Math.min(2, roundToQuarter(conservativeRiskPct * 1.25))
   }
 
+  // Cap by daily-limit-per-trade without rounding the cap down to 0%
   if (dailyLimitPerTradePct != null && dailyLimitPerTradePct > 0) {
-    suggestedRiskPct = Math.min(suggestedRiskPct, roundToQuarter(dailyLimitPerTradePct))
+    suggestedRiskPct = Math.min(suggestedRiskPct, dailyLimitPerTradePct)
   }
 
   suggestedRiskPct = roundToQuarter(suggestedRiskPct)
+  // Never show 0% when there is a real balance — floor at 0.25%
+  if (balance > 0 && suggestedRiskPct < 0.25) {
+    suggestedRiskPct = 0.25
+  }
   const amount = suggestedRiskAmount(balance, suggestedRiskPct)
 
   return {

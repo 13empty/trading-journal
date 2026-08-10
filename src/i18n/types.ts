@@ -282,6 +282,7 @@ export interface Translations {
     peak: string
     trough: string
     goalsTitle: string
+    goalsEditInOptions: string
     dailyProfitGoal: string
     dailyLossLimit: string
     weeklyProfitGoal: string
@@ -332,6 +333,20 @@ export interface Translations {
     allAccounts: string
   }
   settings: {
+    pageTitle: string
+    pageSubtitle: string
+    appearanceTitle: string
+    accentColor: string
+    accent_blue: string
+    accent_teal: string
+    accent_green: string
+    accent_amber: string
+    accent_rose: string
+    goalsTitle: string
+    goalsHint: string
+    dailyProfitGoal: string
+    weeklyProfitGoal: string
+    monthlyProfitGoal: string
     aboutTitle: string
     version: string
     mode: string
@@ -384,6 +399,8 @@ export interface Translations {
     maxDrawdownPct: string
     alertOnThresholds: string
     enableTradingRules: string
+    autoCloseOnDayRule: string
+    autoCloseOnDayRuleHint: string
   }
   welcome: {
     title: string
@@ -481,6 +498,7 @@ export interface Translations {
     goalReached: string
     mt5Disconnected: string
     bridgeOffline: string
+    positionsClosed: string
   }
   dayJournal: {
     title: string

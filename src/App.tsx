@@ -73,7 +73,10 @@ import { computeDayJournalStats, tradeHasJournalMeta } from './lib/tradeJournalS
 import { buildWeeklySummary } from './lib/weeklySummary'
 import { type BackupBundle } from './lib/backup'
 import { desktopNotify, getDesktopInfo } from './lib/desktop'
+import { requestCloseAllPositions, waitForCloseAllResult } from './lib/mt5Bridge'
+import { applyAccentTheme } from './lib/theme'
 import { tradeMetaKey as journalTradeKey } from './lib/journalStorage'
+import type { ThresholdRuleId } from './types/journal'
 import {
   getDateLocale,
   getTranslations,
@@ -82,6 +85,9 @@ import {
   type AppLanguage,
 } from './i18n'
 import './App.css'
+
+/** Day-only rules that can trigger auto-close (not revenge / drawdown peak). */
+const DAY_CLOSE_RULES: ThresholdRuleId[] = ['daily_loss', 'max_trades']
 
 const emptyTrade = (date: string): Omit<Trade, 'id'> => ({
   date,
@@ -404,18 +410,32 @@ function App() {
   )
   const thresholdNotified = useRef<Set<string>>(new Set())
   const goalNotified = useRef<Set<string>>(new Set())
+  /** Confirmed successful auto-close for a given day (retry allowed until then). */
+  const dayCloseDone = useRef<Set<string>>(new Set())
+  const dayCloseInFlight = useRef(false)
+  const dayCloseLastAttempt = useRef(0)
   const mt5AlertNotified = useRef(false)
   const mt5WasConnected = useRef(false)
   const notifyEnabled = settings.desktopNotifications !== false
+
+  useEffect(() => {
+    applyAccentTheme(settings.accentTheme)
+  }, [settings.accentTheme])
 
   useEffect(() => {
     const active = new Set(
       todayThresholdRules.filter((r) => r.status === 'warn').map((r) => `${todayKey}:${r.id}`),
     )
     pruneNotifyKeys(active, thresholdNotified.current)
+    // Only keep confirmed closes for the current day — drop yesterday's keys
+    const closeActive = new Set(
+      [...dayCloseDone.current].filter((k) => k.startsWith(`${todayKey}:`)),
+    )
+    pruneNotifyKeys(closeActive, dayCloseDone.current)
   }, [todayThresholdRules, todayKey])
 
   useEffect(() => {
+    // Keep notify keys while still reached on closed PnL — avoids float flicker spam
     const active = new Set(
       todayGoals.filter((g) => g.status === 'reached').map((g) => `${todayKey}:${g.id}`),
     )
@@ -444,6 +464,69 @@ function App() {
     t.brand.title,
     t.thresholds,
     t.notifications.ruleBreached,
+    tf,
+    notifyEnabled,
+  ])
+
+  useEffect(() => {
+    if (!isTradingRulesEnabled(settings) || settings.autoCloseOnDayRule !== true) return
+    if (!bridgeOnline || !mt5Connected) return
+    if (openPositions.length === 0) return
+
+    const dayBreach = todayThresholdRules.filter(
+      (r) => r.status === 'warn' && DAY_CLOSE_RULES.includes(r.id),
+    )
+    if (dayBreach.length === 0) return
+
+    const key = `${todayKey}:auto-close`
+    if (dayCloseDone.current.has(key) || dayCloseInFlight.current) return
+    // Back off between retries (bridge/Python may still be working)
+    if (Date.now() - dayCloseLastAttempt.current < 15_000) return
+
+    dayCloseInFlight.current = true
+    dayCloseLastAttempt.current = Date.now()
+
+    const ruleLabels = dayBreach
+      .map((r) => t.thresholds[THRESHOLD_LABEL_KEYS[r.id]])
+      .join(' · ')
+
+    void (async () => {
+      try {
+        const queued = await requestCloseAllPositions('day_rule')
+        if (!queued.ok || !queued.commandId) return
+
+        const result = await waitForCloseAllResult(queued.commandId, 45_000)
+        const closed = result.closed ?? 0
+        const failed = result.failed ?? 0
+        const success = result.ok === true && failed === 0
+        // Also treat "nothing left to close" as success (0 positions when agent ran)
+        const done = success || (closed > 0 && failed === 0)
+
+        if (done) {
+          dayCloseDone.current.add(key)
+          if (notifyEnabled) {
+            void desktopNotify(
+              t.brand.title,
+              tf(t.notifications.positionsClosed, { rule: ruleLabels }),
+              true,
+            )
+          }
+        }
+        // On timeout / partial failure: leave key unset so a later effect can retry
+      } finally {
+        dayCloseInFlight.current = false
+      }
+    })()
+  }, [
+    settings,
+    todayThresholdRules,
+    todayKey,
+    bridgeOnline,
+    mt5Connected,
+    openPositions.length,
+    t.brand.title,
+    t.thresholds,
+    t.notifications.positionsClosed,
     tf,
     notifyEnabled,
   ])
@@ -810,6 +893,8 @@ function App() {
             onShowWelcome={() => setShowWelcome(true)}
             onResyncDone={() => void verifyAll()}
             t={t.settings}
+            tLang={t.language}
+            tCalendar={t.calendar}
           />
         ) : mainTab === 'analytics' ? (
           <AnalyticsPanel

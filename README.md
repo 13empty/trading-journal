@@ -2,7 +2,7 @@
 
 **Diario de trading con sincronización MetaTrader 5 · Desktop app for Windows**
 
-[![Version](https://img.shields.io/badge/version-1.2.2-blue)](package.json)
+[![Version](https://img.shields.io/badge/version-1.2.4-blue)](package.json)
 [![Stack](https://img.shields.io/badge/stack-React%20%2B%20Electron%20%2B%20Python-61dafb)](package.json)
 
 ---

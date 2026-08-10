@@ -7,6 +7,45 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.4] — 2026-08-10
+
+### Fixed / Corregido
+
+- **ES:** Auto-cierre espera resultado real de MT5 y reintenta si falla (antes marcaba el día como hecho al encolar)  
+  **EN:** Auto-close waits for real MT5 result and retries on failure (previously marked the day done on queue only)
+- **ES:** Comando bridge `close_all` se restaura al reiniciar y solo se limpia tras el resultado  
+  **EN:** Bridge `close_all` command restored on restart and cleared only after result
+- **ES:** Metas de ganancia usan PnL cerrado (sin flotante) — evita spam de “meta alcanzada”  
+  **EN:** Profit goals use closed PnL (no floating) — stops “goal reached” notify spam
+- **ES:** Banner de límite de pérdida en Analytics respeta el interruptor de reglas  
+  **EN:** Analytics loss-limit banner respects trading-rules master switch
+- **ES:** Riesgo sugerido ya no puede redondear a 0% por el tope de límite diario  
+  **EN:** Suggested risk no longer rounds to 0% from daily-limit cap
+
+---
+
+## [1.2.3] — 2026-08-03
+
+### Added / Añadido
+
+- **ES:** Pestaña **Opciones** consolidada (idioma, color, metas, reglas, notificaciones, sync, backup)  
+  **EN:** Consolidated **Options** tab (language, color, goals, rules, notifications, sync, backup)
+- **ES:** Selector de color de acento (azul, turquesa, verde, ámbar, rosa)  
+  **EN:** Accent color picker (blue, teal, green, amber, rose)
+- **ES:** Opción para **cerrar todas las posiciones** si se viola una regla del día (pérdida diaria o máx. trades)  
+  **EN:** Option to **close all positions** when a day rule is breached (daily loss or max trades)
+- **ES:** Bridge + sync Python: comando `close_all` hacia MT5  
+  **EN:** Bridge + Python sync: `close_all` command to MT5
+
+### Changed / Cambiado
+
+- **ES:** Edición de metas movida de Analytics a Opciones (Analytics solo muestra progreso)  
+  **EN:** Goal editing moved from Analytics to Options (Analytics shows progress only)
+- **ES:** Nav “Ajustes” renombrado a “Opciones”  
+  **EN:** Nav “Settings” renamed to “Options”
+
+---
+
 ## [1.2.2] — 2026-08-01
 
 ### Added / Añadido

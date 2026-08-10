@@ -22,10 +22,42 @@ export function startBridge(options = {}) {
   let syncCache = null
   let syncCacheVersion = -1
   let stateVersion = 0
+  /** Pending command for Python sync agent (e.g. close_all) */
+  let pendingCommand = null
+  let lastCommandResult = null
+  const COMMAND_FILE = path.join(bridgeDir(), 'bridge-command.json')
+  const CLAIM_STALE_MS = 90_000
 
   function invalidateSyncCache() {
     syncCache = null
     stateVersion += 1
+  }
+
+  function persistCommand(cmd) {
+    try {
+      if (cmd) fs.writeFileSync(COMMAND_FILE, JSON.stringify(cmd, null, 2), 'utf8')
+      else if (fs.existsSync(COMMAND_FILE)) fs.unlinkSync(COMMAND_FILE)
+    } catch {
+      /* ignore disk errors */
+    }
+  }
+
+  function loadPendingCommand() {
+    try {
+      if (!fs.existsSync(COMMAND_FILE)) return
+      const cmd = JSON.parse(fs.readFileSync(COMMAND_FILE, 'utf8'))
+      if (cmd?.action) {
+        pendingCommand = { ...cmd, status: cmd.status === 'claimed' ? 'pending' : cmd.status || 'pending' }
+        console.log(`[bridge] restored pending command ${pendingCommand.id}`)
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function clearPendingCommand() {
+    pendingCommand = null
+    persistCommand(null)
   }
 
   function loadState() {
@@ -37,6 +69,7 @@ export function startBridge(options = {}) {
       state = createEmptyState()
     }
     invalidateSyncCache()
+    loadPendingCommand()
   }
 
   function saveState() {
@@ -219,6 +252,81 @@ export function startBridge(options = {}) {
           tradeCount: state.trades.length,
           cashCount: state.cashMovements.length,
         })
+      }
+
+      /** Queue close-all for the Python MT5 agent */
+      if (req.method === 'POST' && url.pathname === '/api/close-all') {
+        const body = await readBody(req).catch(() => ({}))
+        // Replace only if nothing pending/claimed, or previous claim went stale
+        if (
+          pendingCommand &&
+          pendingCommand.status === 'claimed' &&
+          Date.now() - (pendingCommand.claimedAt || pendingCommand.at || 0) < CLAIM_STALE_MS
+        ) {
+          return json(res, 200, { ok: true, command: pendingCommand, alreadyQueued: true })
+        }
+        pendingCommand = {
+          action: 'close_all',
+          id: `close_${Date.now()}`,
+          reason: body.reason || 'day_rule',
+          at: Date.now(),
+          status: 'pending',
+        }
+        lastCommandResult = null
+        persistCommand(pendingCommand)
+        console.log(`[bridge] queued close_all (${pendingCommand.id})`)
+        return json(res, 200, { ok: true, command: pendingCommand })
+      }
+
+      /**
+       * Python polls this each loop.
+       * Claims the command without clearing — cleared only after /api/command/result.
+       */
+      if (req.method === 'GET' && url.pathname === '/api/command') {
+        if (!pendingCommand?.action) {
+          return json(res, 200, { action: null })
+        }
+        const claimedAt = pendingCommand.claimedAt || 0
+        if (
+          pendingCommand.status === 'claimed' &&
+          Date.now() - claimedAt < CLAIM_STALE_MS
+        ) {
+          // Still being processed — do not re-issue
+          return json(res, 200, { action: null, inProgress: true, id: pendingCommand.id })
+        }
+        pendingCommand = {
+          ...pendingCommand,
+          status: 'claimed',
+          claimedAt: Date.now(),
+        }
+        persistCommand(pendingCommand)
+        return json(res, 200, {
+          action: pendingCommand.action,
+          id: pendingCommand.id,
+          reason: pendingCommand.reason,
+          at: pendingCommand.at,
+        })
+      }
+
+      /** Python reports close-all result — then clear the queue */
+      if (req.method === 'POST' && url.pathname === '/api/command/result') {
+        lastCommandResult = await readBody(req)
+        console.log(`[bridge] command result:`, lastCommandResult)
+        clearPendingCommand()
+        return json(res, 200, { ok: true })
+      }
+
+      if (req.method === 'GET' && url.pathname === '/api/command/result') {
+        if (lastCommandResult) return json(res, 200, { ...lastCommandResult, pending: false })
+        if (pendingCommand?.action) {
+          return json(res, 200, {
+            ok: false,
+            pending: true,
+            commandId: pendingCommand.id,
+            status: pendingCommand.status,
+          })
+        }
+        return json(res, 200, { ok: false, pending: false, idle: true })
       }
 
       json(res, 404, { error: 'Not found' })

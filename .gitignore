@@ -25,6 +25,7 @@ dist-ssr
 *.sw?
 
 bridge/bridge-state.json
+bridge/bridge-command.json
 bridge-data/
 release/
 build/*

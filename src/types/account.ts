@@ -16,6 +16,9 @@ import type { TrackingGoals } from './journal'
 
 export type CalendarPnlDisplay = 'dollar' | 'percent' | 'both'
 
+/** Accent color presets for the UI */
+export type AccentTheme = 'blue' | 'teal' | 'green' | 'amber' | 'rose'
+
 export interface AppSettings extends TrackingGoals {
   initialBalance: number
   brokerBalance?: number
@@ -25,6 +28,8 @@ export interface AppSettings extends TrackingGoals {
   mt5NetProfit?: number
   /** UI language (es, en, pt) */
   language?: AppLanguage
+  /** Accent / color theme */
+  accentTheme?: AccentTheme
   /** Etiqueta de la cuenta MT5 activa */
   accountLabel?: string
   /** IDs de cuentas conocidas (multi-cuenta) */
