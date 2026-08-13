@@ -7,6 +7,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.5] — 2026-08-13
+
+### Added / Añadido
+
+- **ES:** Packs de apariencia (Medianoche, Grafito, Cyber, Pizarra, Light) — acento incluido en cada pack  
+  **EN:** Appearance packs (Midnight, Graphite, Cyber, Slate, Light) — accent baked into each pack
+- **ES:** Tema Cyber futurista con glow  
+  **EN:** Futuristic Cyber theme with glow accents
+- **ES:** Auto-cálculo de metas de ganancia al editar una  
+  **EN:** Auto-calculate related profit goals when editing one
+
+### Fixed / Corregido
+
+- **ES:** Arrastrar la ventana en Windows (zona drag del titlebar oculto)  
+  **EN:** Drag the Windows frameless window (hidden titlebar drag region)
+- **ES:** Titlebar overlay sincroniza colores con el tema  
+  **EN:** Titlebar overlay colors sync with the active theme
+
+---
+
 ## [1.2.4] — 2026-08-10
 
 ### Fixed / Corregido

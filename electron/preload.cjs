@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('desktop', {
   readSyncLog: (maxLines) => ipcRenderer.invoke('desktop:read-sync-log', maxLines ?? 40),
   applyBroker: (payload) => ipcRenderer.invoke('desktop:apply-broker', payload),
   runFullResync: () => ipcRenderer.invoke('desktop:run-full-resync'),
+  setTitleBarTheme: (payload) => ipcRenderer.invoke('desktop:set-titlebar-theme', payload),
   checkUpdates: () => ipcRenderer.invoke('update:check'),
   downloadUpdate: () => ipcRenderer.invoke('update:download'),
   installUpdate: () => ipcRenderer.invoke('update:install'),

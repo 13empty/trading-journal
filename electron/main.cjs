@@ -220,6 +220,22 @@ function registerDesktopIpc() {
     return { ok: true }
   })
 
+  ipcMain.handle('desktop:set-titlebar-theme', (_e, payload) => {
+    if (!mainWindow || mainWindow.isDestroyed()) return { ok: false }
+    if (process.platform !== 'win32') return { ok: true }
+    try {
+      mainWindow.setTitleBarOverlay({
+        color: payload?.color || '#161b22',
+        symbolColor: payload?.symbolColor || '#e6edf3',
+        height: 36,
+      })
+      return { ok: true }
+    } catch (err) {
+      console.error('[titlebar]', err)
+      return { ok: false }
+    }
+  })
+
   ipcMain.handle('desktop:run-full-resync', async () => {
     const script = unpackedPath('bridge-python', 'offline_resync.py')
     return runPythonScript(script, 240_000)

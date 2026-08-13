@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AccentTheme, AppSettings, CalendarPnlDisplay } from '../types/account'
+import type { AppearanceId, AppSettings, CalendarPnlDisplay } from '../types/account'
 import type { CashMovement } from '../types/account'
 import type { Trade } from '../types/trade'
 import type { DailyNote, TradeMeta } from '../types/journal'
@@ -15,11 +15,13 @@ import {
   openUserDataFolder,
   readSyncLogTail,
   runFullResyncDesktop,
+  setTitleBarThemeDesktop,
   type DesktopAppInfo,
 } from '../lib/desktop'
 import { reloadBridgeFromDisk } from '../lib/mt5Bridge'
 import { APP_VERSION } from '../lib/appVersion'
-import { ACCENT_THEMES, applyAccentTheme } from '../lib/theme'
+import { deriveProfitGoals } from '../lib/profitGoals'
+import { APPEARANCE_PRESETS, applyAppearance, resolveAppearance } from '../lib/theme'
 
 interface Props {
   settings: AppSettings
@@ -112,9 +114,12 @@ export function SettingsPanel({
     void readSyncLogTail(35).then(setLogTail)
   }
 
-  const setAccent = (accentTheme: AccentTheme) => {
-    applyAccentTheme(accentTheme)
-    onSettingsChange({ ...settings, accentTheme })
+  const appearance = resolveAppearance(settings)
+
+  const setAppearance = (id: AppearanceId) => {
+    const preset = applyAppearance(id)
+    void setTitleBarThemeDesktop(preset.titleBar)
+    onSettingsChange({ ...settings, appearance: id, uiMode: id === 'light' || id === 'slate' ? 'light' : 'dark' })
   }
 
   return (
@@ -141,6 +146,46 @@ export function SettingsPanel({
             ))}
           </select>
         </label>
+        <div className="accent-picker">
+          <span className="label">{t.appearancePack}</span>
+          <p className="hint-inline">{t.appearanceHint}</p>
+          <div className="appearance-grid" role="group" aria-label={t.appearancePack}>
+            {APPEARANCE_PRESETS.map((preset) => {
+              const labelKey = `appearance_${preset.id}` as keyof typeof t
+              const descKey = `appearance_${preset.id}_desc` as keyof typeof t
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`appearance-card${appearance === preset.id ? ' active' : ''}`}
+                  aria-pressed={appearance === preset.id}
+                  onClick={() => setAppearance(preset.id)}
+                >
+                  <div className="appearance-preview" aria-hidden>
+                    <div
+                      className="appearance-preview-bg"
+                      style={{ background: preset.vars['--bg'] }}
+                    />
+                    <div
+                      className="appearance-preview-surface"
+                      style={{ background: preset.vars['--surface'] }}
+                    >
+                      <span
+                        className="appearance-preview-accent"
+                        style={{
+                          background: preset.vars['--accent'],
+                          color: preset.vars['--accent'],
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <span className="appearance-card-label">{t[labelKey] as string}</span>
+                  <span className="appearance-card-desc">{t[descKey] as string}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
         <label className="offset-field">
           {tCalendar.displayModeLabel}
           <select
@@ -157,41 +202,40 @@ export function SettingsPanel({
             <option value="both">{tCalendar.displayBoth}</option>
           </select>
         </label>
-        <div className="accent-picker">
-          <span className="label">{t.accentColor}</span>
-          <div className="accent-swatches" role="group" aria-label={t.accentColor}>
-            {ACCENT_THEMES.map((theme) => (
-              <button
-                key={theme.id}
-                type="button"
-                className={`accent-swatch${(settings.accentTheme ?? 'blue') === theme.id ? ' active' : ''}`}
-                style={{ background: theme.accent }}
-                title={t[`accent_${theme.id}` as keyof typeof t] as string}
-                aria-label={t[`accent_${theme.id}` as keyof typeof t] as string}
-                aria-pressed={(settings.accentTheme ?? 'blue') === theme.id}
-                onClick={() => setAccent(theme.id)}
-              />
-            ))}
-          </div>
-        </div>
       </section>
 
       <section className="panel settings-section">
         <h3>{t.goalsTitle}</h3>
         <p className="hint-inline">{t.goalsHint}</p>
-        <div className="goals-grid">
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={settings.autoCalcProfitGoals === true}
+            onChange={(e) =>
+              onSettingsChange({ ...settings, autoCalcProfitGoals: e.target.checked })
+            }
+          />
+          {t.autoCalcProfitGoals}
+        </label>
+        <p className="hint-inline">{t.autoCalcProfitGoalsHint}</p>
+        <div className="goals-grid goals-grid-3">
           <label>
             {t.dailyProfitGoal}
             <input
               type="number"
               step="any"
               value={settings.dailyProfitGoal ?? ''}
-              onChange={(e) =>
+              onChange={(e) => {
+                const raw = e.target.value
+                if (settings.autoCalcProfitGoals) {
+                  onSettingsChange({ ...settings, ...deriveProfitGoals('daily', raw) })
+                  return
+                }
                 onSettingsChange({
                   ...settings,
-                  dailyProfitGoal: parseFloat(e.target.value) || undefined,
+                  dailyProfitGoal: parseFloat(raw) || undefined,
                 })
-              }
+              }}
             />
           </label>
           <label>
@@ -200,12 +244,17 @@ export function SettingsPanel({
               type="number"
               step="any"
               value={settings.weeklyProfitGoal ?? ''}
-              onChange={(e) =>
+              onChange={(e) => {
+                const raw = e.target.value
+                if (settings.autoCalcProfitGoals) {
+                  onSettingsChange({ ...settings, ...deriveProfitGoals('weekly', raw) })
+                  return
+                }
                 onSettingsChange({
                   ...settings,
-                  weeklyProfitGoal: parseFloat(e.target.value) || undefined,
+                  weeklyProfitGoal: parseFloat(raw) || undefined,
                 })
-              }
+              }}
             />
           </label>
           <label>
@@ -214,12 +263,17 @@ export function SettingsPanel({
               type="number"
               step="any"
               value={settings.monthlyProfitGoal ?? ''}
-              onChange={(e) =>
+              onChange={(e) => {
+                const raw = e.target.value
+                if (settings.autoCalcProfitGoals) {
+                  onSettingsChange({ ...settings, ...deriveProfitGoals('monthly', raw) })
+                  return
+                }
                 onSettingsChange({
                   ...settings,
-                  monthlyProfitGoal: parseFloat(e.target.value) || undefined,
+                  monthlyProfitGoal: parseFloat(raw) || undefined,
                 })
-              }
+              }}
             />
           </label>
         </div>

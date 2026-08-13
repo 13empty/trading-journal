@@ -336,14 +336,22 @@ export interface Translations {
     pageTitle: string
     pageSubtitle: string
     appearanceTitle: string
-    accentColor: string
-    accent_blue: string
-    accent_teal: string
-    accent_green: string
-    accent_amber: string
-    accent_rose: string
+    appearancePack: string
+    appearanceHint: string
+    appearance_midnight: string
+    appearance_midnight_desc: string
+    appearance_graphite: string
+    appearance_graphite_desc: string
+    appearance_cyber: string
+    appearance_cyber_desc: string
+    appearance_slate: string
+    appearance_slate_desc: string
+    appearance_light: string
+    appearance_light_desc: string
     goalsTitle: string
     goalsHint: string
+    autoCalcProfitGoals: string
+    autoCalcProfitGoalsHint: string
     dailyProfitGoal: string
     weeklyProfitGoal: string
     monthlyProfitGoal: string

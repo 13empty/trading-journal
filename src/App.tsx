@@ -72,9 +72,9 @@ import { notifyOnce, pruneNotifyKeys } from './lib/notifyOnce'
 import { computeDayJournalStats, tradeHasJournalMeta } from './lib/tradeJournalStats'
 import { buildWeeklySummary } from './lib/weeklySummary'
 import { type BackupBundle } from './lib/backup'
-import { desktopNotify, getDesktopInfo } from './lib/desktop'
+import { desktopNotify, getDesktopInfo, setTitleBarThemeDesktop } from './lib/desktop'
 import { requestCloseAllPositions, waitForCloseAllResult } from './lib/mt5Bridge'
-import { applyAccentTheme } from './lib/theme'
+import { applyAppearance, resolveAppearance } from './lib/theme'
 import { tradeMetaKey as journalTradeKey } from './lib/journalStorage'
 import type { ThresholdRuleId } from './types/journal'
 import {
@@ -419,8 +419,10 @@ function App() {
   const notifyEnabled = settings.desktopNotifications !== false
 
   useEffect(() => {
-    applyAccentTheme(settings.accentTheme)
-  }, [settings.accentTheme])
+    const id = resolveAppearance(settings)
+    const preset = applyAppearance(id)
+    void setTitleBarThemeDesktop(preset.titleBar)
+  }, [settings.appearance, settings.uiMode])
 
   useEffect(() => {
     const active = new Set(
@@ -729,6 +731,8 @@ function App() {
   }
 
   return (
+    <>
+    <div className="titlebar-drag-region" aria-hidden />
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-scroll">
@@ -1276,6 +1280,7 @@ function App() {
         </div>
       )}
     </div>
+    </>
   )
 }
 

@@ -1,4 +1,5 @@
-:root{
+:root,
+[data-theme=dark]{
 --titlebar-inset:0px;
 --bg:#0d1117;
 --surface:#161b22;
@@ -17,7 +18,24 @@
 --scrollbar-size:6px;
 --scrollbar-thumb:#3d444d;
 --scrollbar-thumb-hover:#586069;
-color-scheme:dark;
+color-scheme:dark}
+[data-theme=light]{
+--bg:#f6f8fa;
+--surface:#ffffff;
+--surface-elevated:#eef1f4;
+--border:#d0d7de;
+--text:#1f2328;
+--muted:#656d76;
+--accent:#0969da;
+--accent-dim:#0969da1a;
+--green:#1a7f37;
+--red:#cf222e;
+--shadow-sm:0 2px 10px #1f232814;
+--shadow-md:0 4px 20px #1f23281f;
+--scrollbar-thumb:#c0c6ce;
+--scrollbar-thumb-hover:#8c959f;
+color-scheme:light}
+:root{
 color:var(--text);
 background:var(--bg);
 font-synthesis:none;
@@ -112,6 +130,17 @@ html.desktop-win #root{
 height:100%;
 padding-top:var(--titlebar-inset);
 box-sizing:border-box}
+/* Frameless Windows: drag strip under titleBarOverlay (leave room for caption buttons) */
+html.desktop-win .titlebar-drag-region{
+position:fixed;
+top:0;
+left:0;
+right:140px;
+height:var(--titlebar-inset);
+z-index:10000;
+-webkit-app-region:drag;
+app-region:drag}
+html:not(.desktop-win) .titlebar-drag-region{display:none}
 #root{
 height:100%;
 min-height:100%}
@@ -1527,12 +1556,77 @@ font-size:.88rem}
 .settings-page-head h2{margin:0 0 .25rem;font-size:1.25rem}
 .accent-picker{margin-top:.75rem}
 .accent-picker .label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:.4rem}
-.accent-swatches{display:flex;gap:.5rem;flex-wrap:wrap}
-.accent-swatch{
-  width:1.75rem;height:1.75rem;border-radius:999px;border:2px solid transparent;
-  cursor:pointer;padding:0;box-shadow:inset 0 0 0 1px #0004
-}
-.accent-swatch.active{border-color:var(--text);box-shadow:0 0 0 2px var(--accent-dim)}
+.appearance-grid{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
+gap:.55rem;
+margin-top:.35rem}
+.appearance-card{
+display:flex;
+flex-direction:column;
+gap:.45rem;
+align-items:stretch;
+padding:.55rem;
+border:1px solid var(--border);
+border-radius:var(--radius-md);
+background:var(--surface);
+color:var(--text);
+cursor:pointer;
+text-align:left;
+transition:border-color .15s ease,box-shadow .15s ease}
+.appearance-card:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--border))}
+.appearance-card.active{
+border-color:var(--accent);
+box-shadow:0 0 0 2px var(--accent-dim)}
+.appearance-preview{
+display:grid;
+grid-template-columns:1.2fr .8fr;
+gap:3px;
+height:42px;
+border-radius:8px;
+overflow:hidden;
+border:1px solid color-mix(in srgb,var(--border) 70%,transparent)}
+.appearance-preview-bg{grid-row:1 / -1}
+.appearance-preview-surface{
+border-left:1px solid color-mix(in srgb,#fff 12%,transparent);
+position:relative}
+.appearance-preview-accent{
+position:absolute;
+right:6px;
+bottom:6px;
+width:10px;
+height:10px;
+border-radius:999px;
+box-shadow:0 0 8px currentColor}
+.appearance-card-label{font-size:.78rem;font-weight:600;line-height:1.2}
+.appearance-card-desc{font-size:.68rem;color:var(--muted);line-height:1.25}
+[data-theme=cyber]{
+font-family:Cascadia Code,Consolas,Segoe UI,system-ui,sans-serif}
+[data-theme=cyber] .app-shell{
+background:
+radial-gradient(1200px 500px at 10% -10%,#00e5ff14,transparent 55%),
+radial-gradient(900px 420px at 100% 0%,#7c3aed12,transparent 50%),
+var(--bg)}
+[data-theme=cyber] .panel,
+[data-theme=cyber] .sidebar,
+[data-theme=cyber] .day-hero,
+[data-theme=cyber] .stat-card{
+border-color:color-mix(in srgb,var(--accent) 28%,var(--border));
+box-shadow:var(--shadow-sm)}
+[data-theme=cyber] .sidebar-brand h1,
+[data-theme=cyber] .main-tabs button.active,
+[data-theme=cyber] .logo{
+letter-spacing:.06em;
+text-shadow:0 0 14px color-mix(in srgb,var(--accent) 45%,transparent)}
+[data-theme=cyber] .logo{
+background:linear-gradient(135deg,#00e5ff33,#7c3aed33);
+border:1px solid color-mix(in srgb,var(--accent) 40%,var(--border))}
+[data-theme=cyber] .main-tabs button.active{
+box-shadow:inset 0 -2px 0 var(--accent),0 0 18px #00e5ff22}
+[data-theme=graphite] .app-shell{
+background:linear-gradient(180deg,#161618 0%,var(--bg) 28%)}
+[data-theme=slate] .app-shell{
+background:linear-gradient(180deg,#dce3eb 0%,var(--bg) 40%)}
 .settings-danger-toggle{margin-top:.5rem;color:var(--text)}
 .risk-advice-panel{margin-bottom:.65rem}
 .risk-daily-grid{margin-bottom:.65rem}
@@ -1630,9 +1724,12 @@ border-radius:10px}
 .day-hero-chart .equity-curve-premium{
 height:112px}
 .chart-empty{padding:1rem 0}
-.goals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.65rem;margin-bottom:.75rem}
-.goals-grid label{display:flex;flex-direction:column;gap:.3rem;font-size:.75rem;color:var(--muted)}
-.goals-grid input[type=number]{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.35rem .5rem}
+.goals-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem;margin-bottom:.75rem}
+.goals-grid.goals-grid-3{grid-template-columns:1fr}
+@media(min-width:560px){.goals-grid.goals-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:420px){.goals-grid{grid-template-columns:1fr}}
+.goals-grid label{display:flex;flex-direction:column;gap:.3rem;font-size:.75rem;color:var(--muted);min-width:0}
+.goals-grid input[type=number]{background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:.35rem .5rem;width:100%;min-width:0}
 .goal-progress{display:flex;flex-direction:column;gap:.65rem}
 .goal-bar-wrap{font-size:.78rem}
 .goal-bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin-top:.25rem}

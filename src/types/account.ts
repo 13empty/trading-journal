@@ -16,7 +16,15 @@ import type { TrackingGoals } from './journal'
 
 export type CalendarPnlDisplay = 'dollar' | 'percent' | 'both'
 
-/** Accent color presets for the UI */
+/**
+ * Full UI appearance packs (palette + mood).
+ * Replaces separate dark/light + accent picker.
+ */
+export type AppearanceId = 'midnight' | 'graphite' | 'cyber' | 'slate' | 'light'
+
+/** @deprecated use AppearanceId — kept for migrating stored settings */
+export type UiMode = 'dark' | 'light'
+/** @deprecated accents are baked into each appearance */
 export type AccentTheme = 'blue' | 'teal' | 'green' | 'amber' | 'rose'
 
 export interface AppSettings extends TrackingGoals {
@@ -28,7 +36,11 @@ export interface AppSettings extends TrackingGoals {
   mt5NetProfit?: number
   /** UI language (es, en, pt) */
   language?: AppLanguage
-  /** Accent / color theme */
+  /** Visual appearance pack */
+  appearance?: AppearanceId
+  /** @deprecated migrated into appearance */
+  uiMode?: UiMode
+  /** @deprecated accents come from appearance packs */
   accentTheme?: AccentTheme
   /** Etiqueta de la cuenta MT5 activa */
   accountLabel?: string

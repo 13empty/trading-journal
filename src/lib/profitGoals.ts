@@ -93,3 +93,56 @@ export function hasAnyProfitGoal(settings: TrackingGoals): boolean {
 export function hasReachedProfitGoal(goals: ProfitGoalState[]): boolean {
   return goals.some((g) => g.status === 'reached')
 }
+
+/** Trading-day assumptions for goal auto-calc (weekdays). */
+export const TRADING_DAYS_PER_WEEK = 5
+export const TRADING_DAYS_PER_MONTH = 20
+export const TRADING_WEEKS_PER_MONTH = TRADING_DAYS_PER_MONTH / TRADING_DAYS_PER_WEEK
+
+function roundMoney(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+export type ProfitGoalField = 'daily' | 'weekly' | 'monthly'
+
+/**
+ * Derive the other two goals from the one the user just edited.
+ * Empty / invalid input clears all three when auto-calc is on.
+ */
+export function deriveProfitGoals(
+  source: ProfitGoalField,
+  rawValue: string,
+): Pick<TrackingGoals, 'dailyProfitGoal' | 'weeklyProfitGoal' | 'monthlyProfitGoal'> {
+  const parsed = parseFloat(rawValue)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return {
+      dailyProfitGoal: undefined,
+      weeklyProfitGoal: undefined,
+      monthlyProfitGoal: undefined,
+    }
+  }
+
+  let daily: number
+  let weekly: number
+  let monthly: number
+
+  if (source === 'monthly') {
+    monthly = parsed
+    weekly = monthly / TRADING_WEEKS_PER_MONTH
+    daily = monthly / TRADING_DAYS_PER_MONTH
+  } else if (source === 'weekly') {
+    weekly = parsed
+    daily = weekly / TRADING_DAYS_PER_WEEK
+    monthly = weekly * TRADING_WEEKS_PER_MONTH
+  } else {
+    daily = parsed
+    weekly = daily * TRADING_DAYS_PER_WEEK
+    monthly = daily * TRADING_DAYS_PER_MONTH
+  }
+
+  return {
+    dailyProfitGoal: roundMoney(daily),
+    weeklyProfitGoal: roundMoney(weekly),
+    monthlyProfitGoal: roundMoney(monthly),
+  }
+}

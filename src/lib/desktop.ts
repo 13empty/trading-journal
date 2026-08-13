@@ -37,6 +37,10 @@ declare global {
         label: string
       }) => Promise<{ ok: boolean }>
       runFullResync: () => Promise<ResyncResult>
+      setTitleBarTheme: (payload: {
+        color: string
+        symbolColor: string
+      }) => Promise<{ ok: boolean }>
       checkUpdates: () => Promise<{ state: string }>
       downloadUpdate: () => Promise<{ ok: boolean }>
       installUpdate: () => Promise<{ ok: boolean }>
@@ -106,6 +110,17 @@ export async function runFullResyncDesktop(): Promise<ResyncResult> {
     return (await window.desktop?.runFullResync()) ?? { ok: false, error: 'no_desktop' }
   } catch (e) {
     return { ok: false, error: String(e) }
+  }
+}
+
+export async function setTitleBarThemeDesktop(payload: {
+  color: string
+  symbolColor: string
+}): Promise<void> {
+  try {
+    await window.desktop?.setTitleBarTheme(payload)
+  } catch {
+    /* ignore */
   }
 }
 

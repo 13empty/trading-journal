@@ -33,6 +33,11 @@ export interface TrackingGoals {
   dailyLossLimit?: number
   weeklyProfitGoal?: number
   monthlyProfitGoal?: number
+  /**
+   * When enabled, editing one profit goal fills the other two
+   * (≈5 trading days/week, ≈20 trading days/month).
+   */
+  autoCalcProfitGoals?: boolean
   alertOnLossLimit?: boolean
   /** Max closed trades per day before rule fires */
   maxTradesPerDay?: number
