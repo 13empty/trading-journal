@@ -41,6 +41,23 @@ declare global {
         color: string
         symbolColor: string
       }) => Promise<{ ok: boolean }>
+      captureScreen: () => Promise<{ ok: boolean; pngBase64?: string; error?: string }>
+      saveTradeScreenshot: (payload: {
+        tradeKey: string
+        slot: 'before' | 'after' | 'close'
+        pngBase64: string
+      }) => Promise<{ ok: boolean; relativePath?: string; error?: string }>
+      pickTradeScreenshot: (payload: {
+        tradeKey: string
+        slot: 'before' | 'after' | 'close'
+      }) => Promise<{ ok: boolean; relativePath?: string; error?: string }>
+      readTradeScreenshot: (
+        relativePath: string,
+      ) => Promise<{ ok: boolean; dataUrl?: string; error?: string }>
+      deleteTradeScreenshot: (
+        relativePath: string,
+      ) => Promise<{ ok: boolean; error?: string }>
+      openScreenshotsFolder: (tradeKey: string) => Promise<{ ok: boolean; error?: string }>
       checkUpdates: () => Promise<{ state: string }>
       downloadUpdate: () => Promise<{ ok: boolean }>
       installUpdate: () => Promise<{ ok: boolean }>

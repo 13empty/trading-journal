@@ -55,6 +55,12 @@ function classifyBalance(comment, amount, accountId) {
     : { category: 'withdraw', type: 'withdraw' }
 }
 
+function numOrUndef(v) {
+  if (v == null || v === '') return undefined
+  const n = Number(v)
+  return Number.isFinite(n) ? n : undefined
+}
+
 function tradeExtras(p, account) {
   const extra = {}
   if (p.openTime) extra.openTime = String(p.openTime)
@@ -62,6 +68,20 @@ function tradeExtras(p, account) {
   if (p.swap != null) extra.swap = Math.abs(Number(p.swap) || 0)
   if (p.commission != null) extra.commission = Math.abs(Number(p.commission) || 0)
   if (account) extra.accountId = String(account)
+  const stopLoss = numOrUndef(p.stopLoss ?? p.sl)
+  const takeProfit = numOrUndef(p.takeProfit ?? p.tp)
+  const riskAmount = numOrUndef(p.riskAmount)
+  const mfeR = numOrUndef(p.mfeR)
+  const maeR = numOrUndef(p.maeR)
+  const mfePrice = numOrUndef(p.mfePrice)
+  const maePrice = numOrUndef(p.maePrice)
+  if (stopLoss != null && stopLoss > 0) extra.stopLoss = stopLoss
+  if (takeProfit != null && takeProfit > 0) extra.takeProfit = takeProfit
+  if (riskAmount != null && riskAmount > 0) extra.riskAmount = riskAmount
+  if (mfeR != null) extra.mfeR = mfeR
+  if (maeR != null) extra.maeR = maeR
+  if (mfePrice != null) extra.mfePrice = mfePrice
+  if (maePrice != null) extra.maePrice = maePrice
   return extra
 }
 

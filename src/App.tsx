@@ -12,7 +12,7 @@ import { DayHero } from './components/DayHero'
 import { DayStatusChips } from './components/DayStatusChips'
 import { DayInsightsSection } from './components/DayInsightsSection'
 import { DayNotesModal } from './components/DayNotesModal'
-import { buildEquityCurve, effectiveRR } from './lib/analytics'
+import { buildEquityCurve, effectiveRR, realizedR } from './lib/analytics'
 import { SettingsPanel } from './components/SettingsPanel'
 import { WelcomeModal } from './components/WelcomeModal'
 import { BrokerWizardModal } from './components/BrokerWizardModal'
@@ -21,6 +21,7 @@ import { DayTradeJournalBar } from './components/DayTradeJournalBar'
 import { WeeklySummaryModal } from './components/WeeklySummaryModal'
 import { SessionSummaryModal } from './components/SessionSummaryModal'
 import { TradeMetaModal } from './components/TradeMetaModal'
+import { TradeReviewModal } from './components/TradeReviewModal'
 import { useMt5Sync } from './hooks/useMt5Sync'
 import {
   buildAccountSummary,
@@ -89,6 +90,8 @@ import './App.css'
 /** Day-only rules that can trigger auto-close (not revenge / drawdown peak). */
 const DAY_CLOSE_RULES: ThresholdRuleId[] = ['daily_loss', 'max_trades']
 
+const EMPTY_TRADE_META: TradeMeta = {}
+
 const emptyTrade = (date: string): Omit<Trade, 'id'> => ({
   date,
   symbol: '',
@@ -122,6 +125,7 @@ function App() {
   const [dailyNotesMap, setDailyNotesMap] = useState<Record<string, DailyNote>>(() => loadDailyNotes())
   const [weeklyNotesMap, setWeeklyNotesMap] = useState<Record<string, WeeklyNote>>(() => loadWeeklyNotes())
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
+  const [reviewingTrade, setReviewingTrade] = useState<Trade | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const mt5ConnectedOnce = useRef(false)
 
@@ -599,6 +603,7 @@ function App() {
     const key = journalTradeKey(trade)
     persistTradeMeta({ ...tradeMetaMap, [key]: meta })
     setEditingTrade(null)
+    setReviewingTrade(null)
   }
 
   const handleRestoreBackup = (bundle: BackupBundle) => {
@@ -978,6 +983,7 @@ function App() {
                   </div>
                 </div>
                 {dayJournalStats && <DayTradeJournalBar stats={dayJournalStats} t={t.dayJournal} />}
+                <p className="hint-inline journal-tip-banner">{t.journal.journalTip}</p>
                 {selectedDay && (selectedDay.openCount ?? 0) > 0 && selectedDate === todayKey && (
                   <p className="day-open-hint">
                     {t.daySummary.openToday}: {selectedDay.openCount} ·{' '}
@@ -1005,13 +1011,29 @@ function App() {
                     <tbody>
                       {dayTrades.map((trade) => {
                         const meta = tradeMetaMap[journalTradeKey(trade)]
-                        const rr = effectiveRR(trade, meta)
+                        const rr = realizedR(trade, meta) ?? effectiveRR(trade, meta)
                         const hasJournal = tradeHasJournalMeta(meta)
                         const cl = meta?.checklist
+                        const setupKey = meta?.setup
+                          ? (`setup_${meta.setup}` as keyof typeof t.journal)
+                          : null
+                        const setupLabel =
+                          setupKey && typeof t.journal[setupKey] === 'string'
+                            ? (t.journal[setupKey] as string)
+                            : meta?.setup
                         return (
                           <tr key={trade.id}>
                             <td>
                               {trade.symbol}
+                              {setupLabel ? (
+                                <span className="trade-tag-row">
+                                  <span className="trade-tag setup-tag">
+                                    {setupLabel}
+                                    {meta?.setupQuality ? ` ${meta.setupQuality}` : ''}
+                                    {meta?.timeframe ? ` · ${meta.timeframe}` : ''}
+                                  </span>
+                                </span>
+                              ) : null}
                               {meta?.tags?.length ? (
                                 <span className="trade-tag-row">
                                   {meta.tags.map((tag) => (
@@ -1024,24 +1046,26 @@ function App() {
                             </td>
                             <td>{t.side[trade.side]}</td>
                             <td className={pnlClass(trade.pnl)}>{formatMoney(trade.pnl)}</td>
-                            <td className="trade-rr-cell">{rr != null ? `${rr.toFixed(1)}R` : '—'}</td>
+                            <td className={`trade-rr-cell${rr != null ? ` ${pnlClass(rr)}` : ''}`}>
+                              {rr != null ? `${rr >= 0 ? '+' : ''}${rr.toFixed(1)}R` : '—'}
+                            </td>
                             <td className="trade-checklist-cell">
-                              {cl ? (
+                              {cl || meta?.setup ? (
                                 <span className="trade-checklist-badges">
                                   <span
-                                    className={cl.hadSetup ? 'on' : 'off'}
+                                    className={cl?.hadSetup || meta?.setup ? 'on' : 'off'}
                                     title={t.journal.hadSetup}
                                   >
                                     S
                                   </span>
                                   <span
-                                    className={cl.respectedRisk ? 'on' : 'off'}
+                                    className={cl?.respectedRisk ? 'on' : 'off'}
                                     title={t.journal.respectedRisk}
                                   >
                                     R
                                   </span>
                                   <span
-                                    className={cl.inTradingHours ? 'on' : 'off'}
+                                    className={cl?.inTradingHours ? 'on' : 'off'}
                                     title={t.journal.inTradingHours}
                                   >
                                     H
@@ -1058,7 +1082,7 @@ function App() {
                               <button
                                 type="button"
                                 className={`btn-ghost-sm${hasJournal ? ' has-dot' : ''}`}
-                                onClick={() => setEditingTrade(trade)}
+                                onClick={() => setReviewingTrade(trade)}
                               >
                                 {t.journal.journalBtn}
                               </button>
@@ -1206,13 +1230,48 @@ function App() {
         />
       )}
 
+      {reviewingTrade && (
+        <TradeReviewModal
+          trade={reviewingTrade}
+          meta={tradeMetaMap[journalTradeKey(reviewingTrade)] ?? EMPTY_TRADE_META}
+          onSave={(meta) => saveTradeMeta(reviewingTrade, meta)}
+          onClose={() => setReviewingTrade(null)}
+          onEditDetails={() => {
+            setEditingTrade(reviewingTrade)
+            setReviewingTrade(null)
+          }}
+          t={t.journal}
+          sideLabels={t.side}
+          sessionLabels={{
+            asia: t.analytics.sessionAsia,
+            london: t.analytics.sessionLondon,
+            ny: t.analytics.sessionNy,
+            other: t.analytics.sessionOther,
+          }}
+        />
+      )}
+
       {editingTrade && (
         <TradeMetaModal
           trade={editingTrade}
-          meta={tradeMetaMap[journalTradeKey(editingTrade)] ?? {}}
+          meta={tradeMetaMap[journalTradeKey(editingTrade)] ?? EMPTY_TRADE_META}
+          balanceAtTrade={
+            (() => {
+              const day = dayMap.get(editingTrade.date)
+              if (!day) return displayBalance
+              return day.endBalance - day.netCash - (day.grossPnl - day.fees)
+            })()
+          }
           onSave={(meta) => saveTradeMeta(editingTrade, meta)}
           onClose={() => setEditingTrade(null)}
           t={t.journal}
+          sideLabels={t.side}
+          sessionLabels={{
+            asia: t.analytics.sessionAsia,
+            london: t.analytics.sessionLondon,
+            ny: t.analytics.sessionNy,
+            other: t.analytics.sessionOther,
+          }}
         />
       )}
 

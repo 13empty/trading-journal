@@ -56,6 +56,13 @@ function normalizeBridgeTrades(raw: Trade[], account?: string | null): Trade[] {
       swap: r.swap,
       commission: r.commission,
       accountId: r.accountId ?? account ?? undefined,
+      stopLoss: r.stopLoss,
+      takeProfit: r.takeProfit,
+      riskAmount: r.riskAmount,
+      mfeR: r.mfeR,
+      maeR: r.maeR,
+      mfePrice: r.mfePrice,
+      maePrice: r.maePrice,
     }
   })
 }

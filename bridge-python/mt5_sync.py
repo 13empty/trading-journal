@@ -94,6 +94,124 @@ def history_deals_range(from_date: datetime, to_date: datetime) -> tuple:
     return deals, safe_from
 
 
+def fetch_position_sl_tp(position_id: int) -> tuple[float, float]:
+    """Last non-zero SL/TP from orders linked to the position."""
+    orders = mt5.history_orders_get(position=position_id)
+    if not orders:
+        return 0.0, 0.0
+    sl = 0.0
+    tp = 0.0
+    for o in orders:
+        try:
+            if float(o.sl) > 0:
+                sl = float(o.sl)
+            if float(o.tp) > 0:
+                tp = float(o.tp)
+        except (TypeError, ValueError, AttributeError):
+            continue
+    return sl, tp
+
+
+def symbol_tick_params(symbol: str) -> tuple[float, float] | None:
+    info = mt5.symbol_info(symbol)
+    if info is None:
+        mt5.symbol_select(symbol, True)
+        info = mt5.symbol_info(symbol)
+    if info is None:
+        return None
+    tick_size = float(info.trade_tick_size or 0)
+    tick_value = float(info.trade_tick_value or 0)
+    if tick_size <= 0 or tick_value <= 0:
+        return None
+    return tick_size, tick_value
+
+
+def compute_risk_amount(
+    entry: float,
+    sl: float,
+    volume: float,
+    tick_size: float,
+    tick_value: float,
+) -> float | None:
+    if sl <= 0 or entry <= 0 or volume <= 0 or tick_size <= 0 or tick_value <= 0:
+        return None
+    dist = abs(entry - sl)
+    if dist <= 0:
+        return None
+    return round((dist / tick_size) * tick_value * volume, 2)
+
+
+def compute_mfe_mae(
+    symbol: str,
+    side: str,
+    entry: float,
+    sl: float,
+    open_time: int,
+    close_time: int,
+) -> dict[str, float | None]:
+    """
+    MFE/MAE from M1 (or M5) OHLC between open and close.
+    maeR/mfeR need SL distance; price extremes still returned when possible.
+    """
+    empty = {
+        "mfePrice": None,
+        "maePrice": None,
+        "mfeR": None,
+        "maeR": None,
+    }
+    if not symbol or entry <= 0 or open_time <= 0 or close_time <= open_time:
+        return empty
+
+    # Skip very old closes (full-year sync would be too slow)
+    if time.time() - close_time > 60 * 60 * 24 * 60:
+        return empty
+
+    hold_sec = close_time - open_time
+    # Skip extreme holds (rates pull can be huge / slow)
+    if hold_sec > 60 * 60 * 24 * 14:
+        return empty
+
+    open_dt = datetime.fromtimestamp(open_time)
+    close_dt = datetime.fromtimestamp(close_time)
+    tf = mt5.TIMEFRAME_M1 if hold_sec <= 60 * 60 * 72 else mt5.TIMEFRAME_M5
+    rates = mt5.copy_rates_range(symbol, tf, open_dt, close_dt)
+    if rates is None or len(rates) == 0:
+        mt5.symbol_select(symbol, True)
+        rates = mt5.copy_rates_range(symbol, tf, open_dt, close_dt)
+    if rates is None or len(rates) == 0:
+        return empty
+
+    try:
+        hi = float(max(rates["high"]))
+        lo = float(min(rates["low"]))
+    except (TypeError, ValueError, KeyError):
+        return empty
+    is_buy = side == "buy"
+
+    if is_buy:
+        mfe_price = hi
+        mae_price = lo
+        fav = mfe_price - entry
+        adv = entry - mae_price
+    else:
+        mfe_price = lo
+        mae_price = hi
+        fav = entry - mfe_price
+        adv = mae_price - entry
+
+    out: dict[str, float | None] = {
+        "mfePrice": round(mfe_price, 5),
+        "maePrice": round(mae_price, 5),
+        "mfeR": None,
+        "maeR": None,
+    }
+    risk_dist = abs(entry - sl) if sl > 0 else 0.0
+    if risk_dist > 0:
+        out["mfeR"] = round(max(fav, 0.0) / risk_dist, 3)
+        out["maeR"] = round(max(adv, 0.0) / risk_dist, 3)
+    return out
+
+
 def build_position_trade(position_id: int, deals: list) -> dict | None:
     symbol = ""
     open_price = 0.0
@@ -102,6 +220,7 @@ def build_position_trade(position_id: int, deals: list) -> dict | None:
     profit = 0.0
     commission = 0.0
     swap = 0.0
+    open_time = 0
     close_time = 0
     side = "buy"
 
@@ -116,14 +235,23 @@ def build_position_trade(position_id: int, deals: list) -> dict | None:
             open_price = d.price
             volume = d.volume
             side = "sell" if d.type == mt5.DEAL_TYPE_SELL else "buy"
+            open_time = int(d.time)
         if d.entry == mt5.DEAL_ENTRY_OUT:
             close_price = d.price
-            close_time = d.time
+            close_time = int(d.time)
 
     if not symbol or close_time == 0:
         return None
 
-    return {
+    sl, tp = fetch_position_sl_tp(position_id)
+    risk_amount = None
+    tick = symbol_tick_params(symbol)
+    if tick and sl > 0:
+        risk_amount = compute_risk_amount(open_price, sl, volume, tick[0], tick[1])
+
+    excursion = compute_mfe_mae(symbol, side, open_price, sl, open_time, close_time)
+
+    trade: dict[str, Any] = {
         "id": position_id,
         "symbol": symbol,
         "side": side,
@@ -136,6 +264,23 @@ def build_position_trade(position_id: int, deals: list) -> dict | None:
         "closeTime": deal_time_iso(close_time),
         "closeDate": deal_date_only(close_time),
     }
+    if open_time > 0:
+        trade["openTime"] = deal_time_iso(open_time)
+    if sl > 0:
+        trade["stopLoss"] = sl
+    if tp > 0:
+        trade["takeProfit"] = tp
+    if risk_amount is not None and risk_amount > 0:
+        trade["riskAmount"] = risk_amount
+    if excursion["mfePrice"] is not None:
+        trade["mfePrice"] = excursion["mfePrice"]
+    if excursion["maePrice"] is not None:
+        trade["maePrice"] = excursion["maePrice"]
+    if excursion["mfeR"] is not None:
+        trade["mfeR"] = excursion["mfeR"]
+    if excursion["maeR"] is not None:
+        trade["maeR"] = excursion["maeR"]
+    return trade
 
 
 def group_closed_positions(deals) -> dict[int, list]:

@@ -4,6 +4,52 @@ export interface TradeChecklist {
   inTradingHours: boolean
 }
 
+/** Common ICT / price-action setups (custom string also allowed). */
+export type SetupId =
+  | 'fvg'
+  | 'order_block'
+  | 'breakout'
+  | 'liquidity_sweep'
+  | 'bos'
+  | 'choch'
+  | 'supply_demand'
+  | 'trend_continuation'
+  | 'reversal'
+  | 'other'
+
+export type SetupQuality = 'A' | 'B' | 'C'
+
+export type TradeTimeframe = 'M1' | 'M5' | 'M15' | 'M30' | 'H1' | 'H4' | 'D1' | 'W1'
+
+export type ScreenshotSlot = 'before' | 'after' | 'close'
+
+export interface TradeScreenshots {
+  /** Relative path under userData/trade-screenshots */
+  before?: string
+  after?: string
+  close?: string
+}
+
+/** Why the trade went wrong (learning tags). */
+export type MistakeId =
+  | 'entered_late'
+  | 'no_confirmation'
+  | 'moved_sl'
+  | 'early_tp'
+  | 'revenge'
+  | 'overtrading'
+  | 'outside_hours'
+  | 'risk_too_high'
+  | 'broke_rule'
+  | 'wrong_setup'
+
+export interface MistakeStats {
+  mistake: MistakeId | string
+  trades: number
+  pnl: number
+  avgPnl: number
+}
+
 export interface TradeMeta {
   tags?: string[]
   riskAmount?: number
@@ -14,6 +60,32 @@ export interface TradeMeta {
   chartLink?: string
   checklist?: TradeChecklist
   journalNotes?: string
+  /** Setup type used for the trade (FVG, OB, …) */
+  setup?: SetupId | string
+  /** Chart timeframe */
+  timeframe?: TradeTimeframe | string
+  /** Override of auto session from close time */
+  session?: TradingSession
+  /** Setup quality grade */
+  setupQuality?: SetupQuality
+  /** Planned stop loss price */
+  stopLoss?: number
+  /** Planned take profit price */
+  takeProfit?: number
+  /** Local chart screenshots linked to this trade */
+  screenshots?: TradeScreenshots
+  /** Mistake tracker: why this trade failed / what went wrong */
+  mistakes?: MistakeId[]
+  /**
+   * Maximum Favorable Excursion in R (how far price went in your favor).
+   * e.g. 7 means +7R peak before close.
+   */
+  mfeR?: number
+  /**
+   * Maximum Adverse Excursion in R (how far against, as a positive number).
+   * e.g. 0.9 means almost −1R drawdown during the trade.
+   */
+  maeR?: number
 }
 
 export interface DailyNote {
@@ -87,6 +159,26 @@ export interface SessionStats {
   trades: number
   pnl: number
   winRate: number
+}
+
+/** Aggregated performance for Setup + Session + Direction combos. */
+export interface SetupComboStats {
+  setup: string
+  session: TradingSession
+  side: 'long' | 'short'
+  trades: number
+  wins: number
+  losses: number
+  winRate: number
+  /** Average realized R (signed). Null if no risk/R data. */
+  expectancyR: number | null
+  /** Sample size for R expectancy */
+  rSampleCount: number
+  pnl: number
+  avgPnl: number
+  /** Average result % of balance when available */
+  avgPct: number | null
+  pctSampleCount: number
 }
 
 export interface StreakInfo {

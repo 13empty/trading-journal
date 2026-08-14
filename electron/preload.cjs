@@ -8,6 +8,15 @@ contextBridge.exposeInMainWorld('desktop', {
   applyBroker: (payload) => ipcRenderer.invoke('desktop:apply-broker', payload),
   runFullResync: () => ipcRenderer.invoke('desktop:run-full-resync'),
   setTitleBarTheme: (payload) => ipcRenderer.invoke('desktop:set-titlebar-theme', payload),
+  captureScreen: () => ipcRenderer.invoke('media:capture-screen'),
+  saveTradeScreenshot: (payload) => ipcRenderer.invoke('media:save-trade-screenshot', payload),
+  pickTradeScreenshot: (payload) => ipcRenderer.invoke('media:pick-trade-screenshot', payload),
+  readTradeScreenshot: (relativePath) =>
+    ipcRenderer.invoke('media:read-trade-screenshot', relativePath),
+  deleteTradeScreenshot: (relativePath) =>
+    ipcRenderer.invoke('media:delete-trade-screenshot', relativePath),
+  openScreenshotsFolder: (tradeKey) =>
+    ipcRenderer.invoke('media:open-screenshots-folder', tradeKey),
   checkUpdates: () => ipcRenderer.invoke('update:check'),
   downloadUpdate: () => ipcRenderer.invoke('update:download'),
   installUpdate: () => ipcRenderer.invoke('update:install'),

@@ -20,7 +20,7 @@ export type CalendarPnlDisplay = 'dollar' | 'percent' | 'both'
  * Full UI appearance packs (palette + mood).
  * Replaces separate dark/light + accent picker.
  */
-export type AppearanceId = 'midnight' | 'graphite' | 'cyber' | 'slate' | 'light'
+export type AppearanceId = 'midnight' | 'graphite' | 'cyber' | 'crimson' | 'slate' | 'light'
 
 /** @deprecated use AppearanceId — kept for migrating stored settings */
 export type UiMode = 'dark' | 'light'

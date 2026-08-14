@@ -7,10 +7,13 @@ import type { TradeMeta } from '../types/journal'
 import type { Translations } from '../i18n/types'
 import {
   buildEquityCurve,
+  balanceBeforeByDate,
   compareMonths,
   computeAdvancedMetrics,
   computeDrawdown,
   computeSessionStats,
+  computeSetupComboStats,
+  computeMistakeStats,
   computeStreaks,
   computeSymbolStats,
   effectiveRR,
@@ -20,9 +23,10 @@ import {
   formatDuration,
   goalAlert,
   netPnl,
+  realizedR,
+  resolveTradeSession,
   tradeHoldMinutes,
   tradeMetaKey,
-  tradeSession,
   uniqueAccounts,
   weeklyPnl,
   monthlyPnl,
@@ -30,6 +34,7 @@ import {
 import { formatMoney, pnlClass, winRate } from '../lib/aggregations'
 import { parseLocalDateKey } from '../lib/mt5Date'
 import { analyzeRiskAdvice, computeWeeklyStats } from '../lib/riskAdvice'
+import { computeExcursionStats } from '../lib/excursion'
 import { RiskAdvicePanel } from './RiskAdvicePanel'
 import { TradeSearchPanel } from './TradeSearchPanel'
 import { AccountFinancePanel } from './AccountFinancePanel'
@@ -107,15 +112,34 @@ export function AnalyticsPanel({
     () => new Map(activities.map((a) => [a.date, a.endBalance])),
     [activities],
   )
+  const balanceBeforeMap = useMemo(
+    () => balanceBeforeByDate(activities, settings.initialBalance ?? 0),
+    [activities, settings.initialBalance],
+  )
 
   const curve = useMemo(() => buildEquityCurve(activities), [activities])
   const drawdown = useMemo(() => computeDrawdown(curve), [curve])
   const symbols = useMemo(() => computeSymbolStats(filteredTrades), [filteredTrades])
-  const sessions = useMemo(() => computeSessionStats(filteredTrades), [filteredTrades])
+  const sessions = useMemo(
+    () => computeSessionStats(filteredTrades, metaMap),
+    [filteredTrades, metaMap],
+  )
+  const setupCombos = useMemo(
+    () => computeSetupComboStats(filteredTrades, metaMap, balanceBeforeMap),
+    [filteredTrades, metaMap, balanceBeforeMap],
+  )
+  const mistakeStats = useMemo(
+    () => computeMistakeStats(filteredTrades, metaMap, 5),
+    [filteredTrades, metaMap],
+  )
+  const excursionStats = useMemo(
+    () => computeExcursionStats(filteredTrades, metaMap),
+    [filteredTrades, metaMap],
+  )
   const streaks = useMemo(() => computeStreaks(filteredTrades, activities), [filteredTrades, activities])
   const metrics = useMemo(
-    () => computeAdvancedMetrics(filteredTrades, metaMap, balanceByDate),
-    [filteredTrades, metaMap, balanceByDate],
+    () => computeAdvancedMetrics(filteredTrades, metaMap, balanceBeforeMap),
+    [filteredTrades, metaMap, balanceBeforeMap],
   )
   const compare = useMemo(
     () => compareMonths(filteredTrades, refDateFromActivities(activities), dateLocale),
@@ -474,6 +498,191 @@ export function AnalyticsPanel({
       )}
 
       <section className="panel analytics-section span-2">
+        <h3>{t.setupAnalytics}</h3>
+        <p className="hint-inline">{t.setupAnalyticsHint}</p>
+        {setupCombos.length === 0 ? (
+          <p className="empty">{t.setupAnalyticsEmpty}</p>
+        ) : (
+          <div className="table-scroll">
+            <table className="data-table compact">
+              <thead>
+                <tr>
+                  <th>{t.setupCombo}</th>
+                  <th>{t.trades}</th>
+                  <th>{t.winRate}</th>
+                  <th>{t.expectancyR}</th>
+                  <th>{t.avgPnl}</th>
+                  <th>PnL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {setupCombos.map((c) => {
+                  const setupKey = `setup_${c.setup}` as keyof Translations['journal']
+                  const setupName =
+                    typeof tJournal[setupKey] === 'string'
+                      ? (tJournal[setupKey] as string)
+                      : c.setup
+                  const combo = `${setupName} + ${t[SESSION_LABEL[c.session]]} + ${sideLabels[c.side]}`
+                  const rText =
+                    c.expectancyR != null
+                      ? `${c.expectancyR >= 0 ? '+' : ''}${c.expectancyR.toFixed(2)}R`
+                      : '—'
+                  return (
+                    <tr key={`${c.setup}-${c.session}-${c.side}`}>
+                      <td>
+                        <div className="setup-combo-cell">
+                          <strong>{combo}</strong>
+                          <span className="hint-inline">
+                            {t.winRate}: {c.winRate.toFixed(0)}%
+                            {c.expectancyR != null
+                              ? ` → ${rText} ${t.expectancyRShort}`
+                              : ''}
+                          </span>
+                        </div>
+                      </td>
+                      <td>{c.trades}</td>
+                      <td>{c.winRate.toFixed(1)}%</td>
+                      <td className={c.expectancyR != null ? pnlClass(c.expectancyR) : undefined}>
+                        {rText}
+                      </td>
+                      <td className={pnlClass(c.avgPnl)}>{formatMoney(c.avgPnl)}</td>
+                      <td className={pnlClass(c.pnl)}>{formatMoney(c.pnl)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="panel analytics-section">
+        <h3>{t.mistakeTracker}</h3>
+        <p className="hint-inline">{t.mistakeTrackerHint}</p>
+        {mistakeStats.length === 0 ? (
+          <p className="empty">{t.mistakeTrackerEmpty}</p>
+        ) : (
+          <table className="data-table compact">
+            <thead>
+              <tr>
+                <th>{t.mistakeError}</th>
+                <th>{t.trades}</th>
+                <th>P&amp;L</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mistakeStats.map((m) => {
+                const mk = `mistake_${m.mistake}` as keyof Translations['journal']
+                const name =
+                  typeof tJournal[mk] === 'string' ? (tJournal[mk] as string) : m.mistake
+                return (
+                  <tr key={m.mistake}>
+                    <td>{name}</td>
+                    <td>{m.trades}</td>
+                    <td className={pnlClass(m.pnl)}>{formatMoney(m.pnl)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      <section className="panel analytics-section span-2">
+        <h3>{t.excursionTitle}</h3>
+        <p className="hint-inline">{t.excursionHintAnalytics}</p>
+        {excursionStats.sampleCount === 0 ? (
+          <p className="empty">{t.excursionEmpty}</p>
+        ) : (
+          <>
+            <div className="streak-grid excursion-kpis">
+              <div>
+                <span className="label">{t.excursionAvgMfe}</span>
+                <span className="val">
+                  {excursionStats.avgMfeR != null
+                    ? `+${excursionStats.avgMfeR.toFixed(2)}R`
+                    : '—'}
+                </span>
+              </div>
+              <div>
+                <span className="label">{t.excursionAvgMae}</span>
+                <span className="val">
+                  {excursionStats.avgMaeR != null
+                    ? `−${excursionStats.avgMaeR.toFixed(2)}R`
+                    : '—'}
+                </span>
+              </div>
+              <div>
+                <span className="label">{t.excursionLeftPct}</span>
+                <span className="val">
+                  {excursionStats.leftOnTablePct.toFixed(0)}%
+                  <span className="hint-inline">
+                    {' '}
+                    ({excursionStats.leftOnTableCount}/{excursionStats.sampleCount})
+                  </span>
+                </span>
+              </div>
+              <div>
+                <span className="label">{t.excursionAvgLeft}</span>
+                <span className="val">
+                  {excursionStats.avgLeftOnTableR != null
+                    ? `~${excursionStats.avgLeftOnTableR.toFixed(1)}R`
+                    : '—'}
+                </span>
+              </div>
+              <div>
+                <span className="label">{t.excursionSlTightPct}</span>
+                <span className="val">
+                  {excursionStats.slTightPct.toFixed(0)}%
+                  <span className="hint-inline">
+                    {' '}
+                    ({excursionStats.slTightCount}/{excursionStats.sampleCount})
+                  </span>
+                </span>
+              </div>
+            </div>
+            {excursionStats.bySetup.length > 0 ? (
+              <>
+                <h4 className="sub-head">{t.excursionBySetup}</h4>
+                <table className="data-table compact">
+                  <thead>
+                    <tr>
+                      <th>{tJournal.setupType}</th>
+                      <th>{t.trades}</th>
+                      <th>{t.excursionAvgMfe}</th>
+                      <th>{t.excursionAvgClosed}</th>
+                      <th>{t.excursionAvgLeft}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {excursionStats.bySetup.map((row) => {
+                      const sk = `setup_${row.setup}` as keyof Translations['journal']
+                      const name =
+                        typeof tJournal[sk] === 'string'
+                          ? (tJournal[sk] as string)
+                          : row.setup
+                      return (
+                        <tr key={row.setup}>
+                          <td>{name}</td>
+                          <td>{row.trades}</td>
+                          <td>+{row.avgMfeR.toFixed(2)}R</td>
+                          <td className={pnlClass(row.avgClosedR)}>
+                            {row.avgClosedR >= 0 ? '+' : ''}
+                            {row.avgClosedR.toFixed(2)}R
+                          </td>
+                          <td className="negative">~{row.avgLeftOnTableR.toFixed(1)}R</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </>
+            ) : null}
+          </>
+        )}
+      </section>
+
+      <section className="panel analytics-section span-2">
         <h3>{t.tradeAnalytics}</h3>
         <p className="hint-inline">{tJournal.tradeAnalyticsHint}</p>
         <div className="table-scroll">
@@ -482,7 +691,9 @@ export function AnalyticsPanel({
               <tr>
                 <th>{t.date}</th>
                 <th>{t.symbol}</th>
+                <th>{tJournal.setupType}</th>
                 <th>PnL</th>
+                <th>{tJournal.resultR}</th>
                 <th>{t.duration}</th>
                 <th>{t.session}</th>
                 <th>R:R</th>
@@ -494,15 +705,31 @@ export function AnalyticsPanel({
               {recentTrades.map((trade) => {
                 const key = tradeMetaKey(trade)
                 const meta = metaMap[key]
-                const bal = balanceByDate.get(trade.date) ?? 0
+                const bal = balanceBeforeMap.get(trade.date) ?? balanceByDate.get(trade.date) ?? 0
                 const rr = effectiveRR(trade, meta)
                 const rp = effectiveRiskPct(trade, meta, bal)
-                const sess = tradeSession(trade.closeTime)
+                const sess = resolveTradeSession(trade, meta)
+                const rReal = realizedR(trade, meta)
+                const setupKey = meta?.setup
+                  ? (`setup_${meta.setup}` as keyof Translations['journal'])
+                  : null
+                const setupName =
+                  setupKey && typeof tJournal[setupKey] === 'string'
+                    ? (tJournal[setupKey] as string)
+                    : meta?.setup || '—'
                 return (
                   <tr key={trade.id}>
                     <td>{trade.date}</td>
                     <td>{trade.symbol}</td>
+                    <td>
+                      {setupName}
+                      {meta?.setupQuality ? ` · ${meta.setupQuality}` : ''}
+                      {meta?.timeframe ? ` · ${meta.timeframe}` : ''}
+                    </td>
                     <td className={pnlClass(netPnl(trade))}>{formatMoney(netPnl(trade))}</td>
+                    <td className={rReal != null ? pnlClass(rReal) : undefined}>
+                      {rReal != null ? `${rReal >= 0 ? '+' : ''}${rReal.toFixed(2)}R` : '—'}
+                    </td>
                     <td>{formatDuration(tradeHoldMinutes(trade))}</td>
                     <td>{sess ? t[SESSION_LABEL[sess]] : '—'}</td>
                     <td>{rr != null ? rr.toFixed(2) : '—'}</td>

@@ -1,6 +1,6 @@
 import type { Trade } from '../types/trade'
 import type { TradeMeta } from '../types/journal'
-import { effectiveRR } from './analytics'
+import { realizedR } from './analytics'
 
 export interface DayJournalStats {
   total: number
@@ -11,6 +11,38 @@ export interface DayJournalStats {
   avgR: number | null
   setupPct: number
   riskPct: number
+}
+
+/** True when the user added intentional learning / review data (not MT5 auto-only). */
+export function tradeHasJournalMeta(meta: TradeMeta | undefined): boolean {
+  if (!meta) return false
+  const shots = meta.screenshots
+  return Boolean(
+    meta.journalNotes?.trim() ||
+      (meta.tags?.length ?? 0) > 0 ||
+      meta.screenshotUrl?.trim() ||
+      meta.chartLink?.trim() ||
+      meta.rewardAmount != null ||
+      meta.riskPercent != null ||
+      meta.rrRatio != null ||
+      // Manual overrides of MT5 fields count as journaled
+      meta.riskAmount != null ||
+      meta.stopLoss != null ||
+      meta.takeProfit != null ||
+      meta.mfeR != null ||
+      meta.maeR != null ||
+      meta.setup ||
+      meta.timeframe ||
+      meta.session ||
+      meta.setupQuality ||
+      (meta.mistakes?.length ?? 0) > 0 ||
+      shots?.before ||
+      shots?.after ||
+      shots?.close ||
+      meta.checklist?.hadSetup ||
+      meta.checklist?.respectedRisk ||
+      meta.checklist?.inTradingHours,
+  )
 }
 
 export function computeDayJournalStats(
@@ -29,23 +61,14 @@ export function computeDayJournalStats(
 
   for (const trade of trades) {
     const meta = metaMap[tradeKey(trade)]
-    if (!meta) continue
+    if (tradeHasJournalMeta(meta)) journaled += 1
 
-    if (
-      meta.journalNotes?.trim() ||
-      (meta.tags?.length ?? 0) > 0 ||
-      meta.screenshotUrl?.trim() ||
-      meta.chartLink?.trim()
-    ) {
-      journaled += 1
-    }
-
-    const checklist = meta.checklist
-    if (checklist?.hadSetup) withSetup += 1
+    const checklist = meta?.checklist
+    if (checklist?.hadSetup || meta?.setup) withSetup += 1
     if (checklist?.respectedRisk) withRisk += 1
     if (checklist?.inTradingHours) withHours += 1
 
-    const rr = effectiveRR(trade, meta)
+    const rr = realizedR(trade, meta)
     if (rr != null) {
       rrSum += rr
       rrCount += 1
@@ -63,19 +86,4 @@ export function computeDayJournalStats(
     setupPct: (withSetup / total) * 100,
     riskPct: (withRisk / total) * 100,
   }
-}
-
-export function tradeHasJournalMeta(meta: TradeMeta | undefined): boolean {
-  if (!meta) return false
-  return Boolean(
-    meta.journalNotes?.trim() ||
-      (meta.tags?.length ?? 0) > 0 ||
-      meta.screenshotUrl?.trim() ||
-      meta.chartLink?.trim() ||
-      meta.riskAmount != null ||
-      meta.rrRatio != null ||
-      meta.checklist?.hadSetup ||
-      meta.checklist?.respectedRisk ||
-      meta.checklist?.inTradingHours,
-  )
 }

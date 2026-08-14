@@ -18,6 +18,18 @@ export interface Trade {
   swap?: number
   commission?: number
   accountId?: string
+  /** Stop loss price from MT5 orders (auto) */
+  stopLoss?: number
+  /** Take profit price from MT5 orders (auto) */
+  takeProfit?: number
+  /** $ risk from entry→SL × tick value × volume (auto) */
+  riskAmount?: number
+  /** Max favorable excursion in R (auto from OHLC when SL known) */
+  mfeR?: number
+  /** Max adverse excursion in R (auto from OHLC when SL known) */
+  maeR?: number
+  mfePrice?: number
+  maePrice?: number
 }
 
 export interface PeriodSummary {

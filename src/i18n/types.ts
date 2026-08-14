@@ -266,6 +266,76 @@ export interface Translations {
     save: string
     journalBtn: string
     tradeAnalyticsHint: string
+    setupSection: string
+    setupSectionHint: string
+    setupType: string
+    setupNone: string
+    direction: string
+    timeframe: string
+    sessionOverride: string
+    sessionAuto: string
+    market: string
+    setupQuality: string
+    setupResults: string
+    setupResultsHint: string
+    resultR: string
+    journalTip: string
+    reviewTitle: string
+    reviewEntry: string
+    reviewSl: string
+    reviewTp: string
+    reviewResult: string
+    /** Badge for MT5-synced fields */
+    autoFromMt5: string
+    /** Badge when user overrode auto value */
+    manualOverride: string
+    /** Hint: leave blank to use MT5 */
+    autoOverrideHint: string
+    /** Tooltip for effective computed value */
+    effectiveValue: string
+    shotsTitle: string
+    shotsHint: string
+    shotBefore: string
+    shotAfter: string
+    shotClose: string
+    shotCapture: string
+    shotPick: string
+    shotClear: string
+    shotEmpty: string
+    shotCapturing: string
+    shotCaptureOk: string
+    shotCaptureFail: string
+    shotsDesktopOnly: string
+    editDetails: string
+    mistakesTitle: string
+    mistakesHint: string
+    mistake_entered_late: string
+    mistake_no_confirmation: string
+    mistake_moved_sl: string
+    mistake_early_tp: string
+    mistake_revenge: string
+    mistake_overtrading: string
+    mistake_outside_hours: string
+    mistake_risk_too_high: string
+    mistake_broke_rule: string
+    mistake_wrong_setup: string
+    mfeLabel: string
+    maeLabel: string
+    mfePlaceholder: string
+    maePlaceholder: string
+    excursionHint: string
+    insightLeftOnTable: string
+    insightSlTight: string
+    setup_fvg: string
+    setup_order_block: string
+    setup_breakout: string
+    setup_liquidity_sweep: string
+    setup_bos: string
+    setup_choch: string
+    setup_supply_demand: string
+    setup_trend_continuation: string
+    setup_reversal: string
+    setup_other: string
   }
   analytics: {
     kpiTitle: string
@@ -316,6 +386,26 @@ export interface Translations {
     sessionLondon: string
     sessionNy: string
     sessionOther: string
+    setupAnalytics: string
+    setupAnalyticsHint: string
+    setupAnalyticsEmpty: string
+    setupCombo: string
+    expectancyR: string
+    expectancyRShort: string
+    mistakeTracker: string
+    mistakeTrackerHint: string
+    mistakeTrackerEmpty: string
+    mistakeError: string
+    excursionTitle: string
+    excursionHintAnalytics: string
+    excursionEmpty: string
+    excursionAvgMfe: string
+    excursionAvgMae: string
+    excursionLeftPct: string
+    excursionAvgLeft: string
+    excursionSlTightPct: string
+    excursionBySetup: string
+    excursionAvgClosed: string
     tradeAnalytics: string
     date: string
     duration: string
@@ -344,6 +434,8 @@ export interface Translations {
     appearance_graphite_desc: string
     appearance_cyber: string
     appearance_cyber_desc: string
+    appearance_crimson: string
+    appearance_crimson_desc: string
     appearance_slate: string
     appearance_slate_desc: string
     appearance_light: string

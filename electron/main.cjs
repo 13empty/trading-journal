@@ -4,7 +4,7 @@
  * 2) Sync MT5 (mt5-sync.exe)
  * 3) Ventana del journal
  */
-const { app, BrowserWindow, dialog, shell, ipcMain, Notification, nativeTheme, nativeImage } = require('electron')
+const { app, BrowserWindow, dialog, shell, ipcMain, Notification, nativeTheme, nativeImage, desktopCapturer, screen } = require('electron')
 const path = require('path')
 const http = require('http')
 const fs = require('fs')
@@ -233,6 +233,152 @@ function registerDesktopIpc() {
     } catch (err) {
       console.error('[titlebar]', err)
       return { ok: false }
+    }
+  })
+
+  function tradeScreenshotsRoot() {
+    const dir = path.join(app.getPath('userData'), 'trade-screenshots')
+    fs.mkdirSync(dir, { recursive: true })
+    return dir
+  }
+
+  function sanitizeMediaKey(key) {
+    return String(key || 'trade')
+      .replace(/[^a-zA-Z0-9._-]+/g, '_')
+      .slice(0, 80) || 'trade'
+  }
+
+  function resolveTradeScreenshotPath(relativePath) {
+    if (!relativePath || typeof relativePath !== 'string') return null
+    const root = tradeScreenshotsRoot()
+    const full = path.normalize(path.join(root, relativePath))
+    if (!full.startsWith(root)) return null
+    return full
+  }
+
+  ipcMain.handle('media:capture-screen', async () => {
+    const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null
+    try {
+      if (win) {
+        win.setOpacity(0)
+        await new Promise((r) => setTimeout(r, 280))
+      }
+      const primary = screen.getPrimaryDisplay()
+      const factor = primary.scaleFactor || 1
+      const w = Math.round(primary.size.width * factor)
+      const h = Math.round(primary.size.height * factor)
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: w, height: h },
+      })
+      if (!sources.length) return { ok: false, error: 'no_sources' }
+      const match =
+        sources.find((s) => String(s.display_id) === String(primary.id)) || sources[0]
+      const png = match.thumbnail.toPNG()
+      if (!png?.length) return { ok: false, error: 'empty_capture' }
+      return { ok: true, pngBase64: png.toString('base64') }
+    } catch (err) {
+      console.error('[media:capture]', err)
+      return { ok: false, error: String(err?.message || err) }
+    } finally {
+      if (win && !win.isDestroyed()) {
+        win.setOpacity(1)
+        win.focus()
+      }
+    }
+  })
+
+  ipcMain.handle('media:save-trade-screenshot', async (_e, payload) => {
+    try {
+      const slot = payload?.slot
+      if (!['before', 'after', 'close'].includes(slot)) {
+        return { ok: false, error: 'bad_slot' }
+      }
+      const b64 = String(payload?.pngBase64 || '').replace(/^data:image\/\w+;base64,/, '')
+      if (!b64) return { ok: false, error: 'no_image' }
+      const key = sanitizeMediaKey(payload?.tradeKey)
+      const dir = path.join(tradeScreenshotsRoot(), key)
+      fs.mkdirSync(dir, { recursive: true })
+      const filename = `${slot}.png`
+      const full = path.join(dir, filename)
+      fs.writeFileSync(full, Buffer.from(b64, 'base64'))
+      const relativePath = path.join(key, filename).replace(/\\/g, '/')
+      return { ok: true, relativePath }
+    } catch (err) {
+      console.error('[media:save]', err)
+      return { ok: false, error: String(err?.message || err) }
+    }
+  })
+
+  ipcMain.handle('media:pick-trade-screenshot', async (_e, payload) => {
+    try {
+      const slot = payload?.slot
+      if (!['before', 'after', 'close'].includes(slot)) {
+        return { ok: false, error: 'bad_slot' }
+      }
+      const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined
+      const result = await dialog.showOpenDialog(win, {
+        title: 'Seleccionar captura',
+        properties: ['openFile'],
+        filters: [
+          { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] },
+          { name: 'All', extensions: ['*'] },
+        ],
+      })
+      if (result.canceled || !result.filePaths?.[0]) {
+        return { ok: false, error: 'cancelled' }
+      }
+      const src = result.filePaths[0]
+      const img = nativeImage.createFromPath(src)
+      if (img.isEmpty()) return { ok: false, error: 'bad_image' }
+      const png = img.toPNG()
+      const key = sanitizeMediaKey(payload?.tradeKey)
+      const dir = path.join(tradeScreenshotsRoot(), key)
+      fs.mkdirSync(dir, { recursive: true })
+      const filename = `${slot}.png`
+      const full = path.join(dir, filename)
+      fs.writeFileSync(full, png)
+      const relativePath = path.join(key, filename).replace(/\\/g, '/')
+      return { ok: true, relativePath }
+    } catch (err) {
+      console.error('[media:pick]', err)
+      return { ok: false, error: String(err?.message || err) }
+    }
+  })
+
+  ipcMain.handle('media:read-trade-screenshot', async (_e, relativePath) => {
+    try {
+      const full = resolveTradeScreenshotPath(relativePath)
+      if (!full || !fs.existsSync(full)) return { ok: false, error: 'missing' }
+      const buf = fs.readFileSync(full)
+      const ext = path.extname(full).toLowerCase()
+      const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.webp' ? 'image/webp' : 'image/png'
+      return { ok: true, dataUrl: `data:${mime};base64,${buf.toString('base64')}` }
+    } catch (err) {
+      return { ok: false, error: String(err?.message || err) }
+    }
+  })
+
+  ipcMain.handle('media:delete-trade-screenshot', async (_e, relativePath) => {
+    try {
+      const full = resolveTradeScreenshotPath(relativePath)
+      if (!full) return { ok: false }
+      if (fs.existsSync(full)) fs.unlinkSync(full)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: String(err?.message || err) }
+    }
+  })
+
+  ipcMain.handle('media:open-screenshots-folder', async (_e, tradeKey) => {
+    try {
+      const key = sanitizeMediaKey(tradeKey)
+      const dir = path.join(tradeScreenshotsRoot(), key)
+      fs.mkdirSync(dir, { recursive: true })
+      await shell.openPath(dir)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: String(err?.message || err) }
     }
   })
 

@@ -5,8 +5,10 @@ import type {
   AdvancedMetrics,
   DrawdownInfo,
   EquityPoint,
+  MistakeStats,
   PeriodCompare,
   SessionStats,
+  SetupComboStats,
   StreakInfo,
   SymbolStats,
   TradeMeta,
@@ -20,6 +22,23 @@ import { formatDisplayDate } from './dateDisplay'
 /** Profit de MT5 por operación (columna Profit del historial). */
 export function netPnl(t: Trade): number {
   return t.pnl
+}
+
+/**
+ * Balance at the start of each day (before that day's PnL / cash).
+ * Prefer this over endBalance for result %.
+ */
+export function balanceBeforeByDate(
+  activities: DayActivity[],
+  initialBalance: number,
+): Map<string, number> {
+  const map = new Map<string, number>()
+  let running = initialBalance
+  for (const d of activities) {
+    map.set(d.date, running)
+    running += d.netCash + (d.grossPnl - d.fees)
+  }
+  return map
 }
 
 export function parseTradeDateTime(value?: string): Date | null {
@@ -39,6 +58,41 @@ export function tradeSession(closeTime?: string): TradingSession | null {
   if (h >= 8 && h < 13) return 'london'
   if (h >= 13 && h < 21) return 'ny'
   return 'other'
+}
+
+/** Prefer open time for session (when the trade was taken). */
+export function tradeSessionFromTrade(trade: Trade): TradingSession | null {
+  return tradeSession(trade.openTime) ?? tradeSession(trade.closeTime)
+}
+
+export function effectiveRiskAmount(trade: Trade, meta?: TradeMeta): number | null {
+  if (meta?.riskAmount != null && meta.riskAmount > 0) return meta.riskAmount
+  if (trade.riskAmount != null && trade.riskAmount > 0) return trade.riskAmount
+  return null
+}
+
+export function effectiveStopLoss(trade: Trade, meta?: TradeMeta): number | null {
+  if (meta?.stopLoss != null && meta.stopLoss > 0) return meta.stopLoss
+  if (trade.stopLoss != null && trade.stopLoss > 0) return trade.stopLoss
+  return null
+}
+
+export function effectiveTakeProfit(trade: Trade, meta?: TradeMeta): number | null {
+  if (meta?.takeProfit != null && meta.takeProfit > 0) return meta.takeProfit
+  if (trade.takeProfit != null && trade.takeProfit > 0) return trade.takeProfit
+  return null
+}
+
+export function effectiveMfeR(trade: Trade, meta?: TradeMeta): number | null {
+  if (meta?.mfeR != null && Number.isFinite(meta.mfeR)) return meta.mfeR
+  if (trade.mfeR != null && Number.isFinite(trade.mfeR)) return trade.mfeR
+  return null
+}
+
+export function effectiveMaeR(trade: Trade, meta?: TradeMeta): number | null {
+  if (meta?.maeR != null && Number.isFinite(meta.maeR)) return meta.maeR
+  if (trade.maeR != null && Number.isFinite(trade.maeR)) return trade.maeR
+  return null
 }
 
 export function tradeHoldMinutes(trade: Trade): number | null {
@@ -109,10 +163,14 @@ export function computeSymbolStats(trades: Trade[]): SymbolStats[] {
     .sort((a, b) => b.pnl - a.pnl)
 }
 
-export function computeSessionStats(trades: Trade[]): SessionStats[] {
+export function computeSessionStats(
+  trades: Trade[],
+  metaMap: Record<string, TradeMeta> = {},
+): SessionStats[] {
   const map = new Map<TradingSession, SessionStats>()
   for (const t of trades) {
-    const session = tradeSession(t.closeTime)
+    const meta = metaMap[tradeMetaKey(t)]
+    const session = resolveTradeSession(t, meta)
     if (!session) continue
     const cur = map.get(session) ?? { session, trades: 0, pnl: 0, winRate: 0 }
     cur.trades += 1
@@ -121,9 +179,10 @@ export function computeSessionStats(trades: Trade[]): SessionStats[] {
   }
   return [...map.values()]
     .map((s) => {
-      const wins = trades.filter(
-        (t) => tradeSession(t.closeTime) === s.session && netPnl(t) >= 0,
-      ).length
+      const wins = trades.filter((t) => {
+        const meta = metaMap[tradeMetaKey(t)]
+        return resolveTradeSession(t, meta) === s.session && netPnl(t) >= 0
+      }).length
       return { ...s, winRate: s.trades ? (wins / s.trades) * 100 : 0 }
     })
     .sort((a, b) => b.pnl - a.pnl)
@@ -277,21 +336,193 @@ export function tradeMetaKey(trade: Trade): string {
 
 export function effectiveRR(trade: Trade, meta?: TradeMeta): number | null {
   if (meta?.rrRatio != null && meta.rrRatio > 0) return meta.rrRatio
-  if (meta?.riskAmount && meta?.rewardAmount && meta.riskAmount > 0) {
-    return meta.rewardAmount / meta.riskAmount
+  const risk = effectiveRiskAmount(trade, meta)
+  if (meta?.rewardAmount && risk && risk > 0) {
+    return meta.rewardAmount / risk
   }
-  const risk = meta?.riskAmount
   if (risk && risk > 0) return Math.abs(netPnl(trade)) / risk
   return null
 }
 
+/**
+ * Signed realized R for the trade.
+ * Prefer pnl / riskAmount (meta override or MT5 auto); else planned rrRatio.
+ */
+export function realizedR(trade: Trade, meta?: TradeMeta): number | null {
+  const pnl = netPnl(trade)
+  const risk = effectiveRiskAmount(trade, meta)
+  if (risk && risk > 0) return pnl / risk
+  if (meta?.rrRatio != null && meta.rrRatio > 0) {
+    if (pnl > 0) return meta.rrRatio
+    if (pnl < 0) return -1
+    return 0
+  }
+  return null
+}
+
+/** PnL as % of balance at the trade date (or provided balance). */
+export function resultPct(trade: Trade, balance: number): number | null {
+  if (!(balance > 0)) return null
+  return (netPnl(trade) / balance) * 100
+}
+
+/** Session from journal override, else auto from open time (fallback close). */
+export function resolveTradeSession(trade: Trade, meta?: TradeMeta): TradingSession | null {
+  if (meta?.session) return meta.session
+  return tradeSessionFromTrade(trade)
+}
+
+export const SETUP_PRESETS = [
+  'fvg',
+  'order_block',
+  'breakout',
+  'liquidity_sweep',
+  'bos',
+  'choch',
+  'supply_demand',
+  'trend_continuation',
+  'reversal',
+  'other',
+] as const
+
+export const TIMEFRAME_PRESETS = ['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1'] as const
+
+export const MISTAKE_PRESETS = [
+  'entered_late',
+  'no_confirmation',
+  'moved_sl',
+  'early_tp',
+  'revenge',
+  'overtrading',
+  'outside_hours',
+  'risk_too_high',
+  'broke_rule',
+  'wrong_setup',
+] as const
+
+/** Aggregate P&L by mistake tag (worst first). */
+export function computeMistakeStats(
+  trades: Trade[],
+  metaMap: Record<string, TradeMeta>,
+  topN = 5,
+): MistakeStats[] {
+  const map = new Map<string, { trades: number; pnl: number }>()
+  for (const t of trades) {
+    const mistakes = metaMap[tradeMetaKey(t)]?.mistakes
+    if (!mistakes?.length) continue
+    const pnl = netPnl(t)
+    const unique = [...new Set(mistakes)]
+    for (const m of unique) {
+      if (!m) continue
+      const cur = map.get(m) ?? { trades: 0, pnl: 0 }
+      cur.trades += 1
+      cur.pnl += pnl
+      map.set(m, cur)
+    }
+  }
+  return [...map.entries()]
+    .map(([mistake, s]) => ({
+      mistake,
+      trades: s.trades,
+      pnl: s.pnl,
+      avgPnl: s.trades ? s.pnl / s.trades : 0,
+    }))
+    .sort((a, b) => a.pnl - b.pnl)
+    .slice(0, topN)
+}
+
+export function computeSetupComboStats(
+  trades: Trade[],
+  metaMap: Record<string, TradeMeta>,
+  balanceByDate: Map<string, number>,
+): SetupComboStats[] {
+  type Acc = {
+    setup: string
+    session: TradingSession
+    side: 'long' | 'short'
+    trades: number
+    wins: number
+    losses: number
+    pnl: number
+    rSum: number
+    rCount: number
+    pctSum: number
+    pctCount: number
+  }
+  const map = new Map<string, Acc>()
+
+  for (const t of trades) {
+    const meta = metaMap[tradeMetaKey(t)]
+    const setup = meta?.setup?.trim()
+    if (!setup) continue
+    const session = resolveTradeSession(t, meta)
+    if (!session) continue
+    const key = `${setup}|${session}|${t.side}`
+    const cur = map.get(key) ?? {
+      setup,
+      session,
+      side: t.side,
+      trades: 0,
+      wins: 0,
+      losses: 0,
+      pnl: 0,
+      rSum: 0,
+      rCount: 0,
+      pctSum: 0,
+      pctCount: 0,
+    }
+    const pnl = netPnl(t)
+    cur.trades += 1
+    cur.pnl += pnl
+    if (pnl >= 0) cur.wins += 1
+    else cur.losses += 1
+
+    const r = realizedR(t, meta)
+    if (r != null) {
+      cur.rSum += r
+      cur.rCount += 1
+    }
+    const bal = balanceByDate.get(t.date) ?? 0
+    const pct = resultPct(t, bal)
+    if (pct != null) {
+      cur.pctSum += pct
+      cur.pctCount += 1
+    }
+    map.set(key, cur)
+  }
+
+  return [...map.values()]
+    .map((s) => ({
+      setup: s.setup,
+      session: s.session,
+      side: s.side,
+      trades: s.trades,
+      wins: s.wins,
+      losses: s.losses,
+      winRate: s.trades ? (s.wins / s.trades) * 100 : 0,
+      expectancyR: s.rCount ? s.rSum / s.rCount : null,
+      rSampleCount: s.rCount,
+      pnl: s.pnl,
+      avgPnl: s.trades ? s.pnl / s.trades : 0,
+      avgPct: s.pctCount ? s.pctSum / s.pctCount : null,
+      pctSampleCount: s.pctCount,
+    }))
+    .sort((a, b) => {
+      const ar = a.expectancyR ?? -Infinity
+      const br = b.expectancyR ?? -Infinity
+      if (br !== ar) return br - ar
+      return b.trades - a.trades
+    })
+}
+
 export function effectiveRiskPct(
-  _trade: Trade,
+  trade: Trade,
   meta: TradeMeta | undefined,
   balanceAtTrade: number,
 ): number | null {
   if (meta?.riskPercent != null && meta.riskPercent > 0) return meta.riskPercent
-  if (meta?.riskAmount && balanceAtTrade > 0) return (meta.riskAmount / balanceAtTrade) * 100
+  const risk = effectiveRiskAmount(trade, meta)
+  if (risk && balanceAtTrade > 0) return (risk / balanceAtTrade) * 100
   return null
 }
 
@@ -320,7 +551,8 @@ export function computeAdvancedMetrics(
     const bal = balanceByDate.get(t.date) ?? 0
     const rp = effectiveRiskPct(t, meta, bal)
     if (rp != null) riskPctValues.push(rp)
-    if (meta?.riskAmount != null && meta.riskAmount > 0) riskAmountValues.push(meta.riskAmount)
+    const risk = effectiveRiskAmount(t, meta)
+    if (risk != null && risk > 0) riskAmountValues.push(risk)
     const hold = tradeHoldMinutes(t)
     if (hold != null) holdValues.push(hold)
   }

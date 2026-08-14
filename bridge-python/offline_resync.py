@@ -72,7 +72,7 @@ def position_to_trade(p: dict) -> dict:
     side = "short" if side_raw in ("sell", "short") else "long"
     pid = str(p["id"])
     close_date = p.get("closeDate") or str(p.get("closeTime", ""))[:10]
-    return {
+    trade = {
         "id": str(uuid.uuid4()),
         "date": close_date,
         "symbol": str(p.get("symbol", "")).upper(),
@@ -85,6 +85,21 @@ def position_to_trade(p: dict) -> dict:
         "notes": f"MT5 #{pid}",
         "positionId": pid,
     }
+    if p.get("openTime"):
+        trade["openTime"] = str(p["openTime"])
+    if p.get("closeTime"):
+        trade["closeTime"] = str(p["closeTime"])
+    if p.get("swap") is not None:
+        trade["swap"] = abs(float(p["swap"]))
+    if p.get("commission") is not None:
+        trade["commission"] = abs(float(p["commission"]))
+    for key in ("stopLoss", "takeProfit", "riskAmount", "mfeR", "maeR", "mfePrice", "maePrice"):
+        if p.get(key) is not None:
+            try:
+                trade[key] = float(p[key])
+            except (TypeError, ValueError):
+                pass
+    return trade
 
 
 def upsert_trade(trades: list[dict], trade: dict) -> list[dict]:

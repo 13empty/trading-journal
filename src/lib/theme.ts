@@ -70,6 +70,26 @@ export const APPEARANCE_PRESETS: AppearancePreset[] = [
     },
   },
   {
+    id: 'crimson',
+    titleBar: { color: '#160d10', symbolColor: '#f0c4c8' },
+    vars: {
+      '--bg': '#0b0708',
+      '--surface': '#160d10',
+      '--surface-elevated': '#221216',
+      '--border': '#3f2429',
+      '--text': '#f6ecee',
+      '--muted': '#9a7a80',
+      '--accent': '#c41e3a',
+      '--accent-dim': '#c41e3a28',
+      '--green': '#3fa66a',
+      '--red': '#ff6b7a',
+      '--shadow-sm': '0 2px 18px #c41e3a14',
+      '--shadow-md': '0 6px 28px #8b122018',
+      '--scrollbar-thumb': '#4a2a30',
+      '--scrollbar-thumb-hover': '#6b3a42',
+    },
+  },
+  {
     id: 'slate',
     titleBar: { color: '#e8ecf1', symbolColor: '#1f2937' },
     vars: {

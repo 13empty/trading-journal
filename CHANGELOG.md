@@ -7,6 +7,28 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.6] — 2026-08-13
+
+### Added / Añadido
+
+- **ES:** Revisión visual del trade (Journal): setup, SL/TP, resultado, notas y capturas BEFORE / AFTER / CLOSE  
+  **EN:** Visual trade review (Journal): setup, SL/TP, result, notes and BEFORE / AFTER / CLOSE screenshots
+- **ES:** Mistake tracker + Top 5 errores en Analytics  
+  **EN:** Mistake tracker + Top 5 mistakes in Analytics
+- **ES:** Setup Analytics — setup, timeframe, sesión, calidad A/B/C; combos con win rate y expectancy en R  
+  **EN:** Setup Analytics — setup, timeframe, session, quality A/B/C; combos with win rate and R expectancy
+- **ES:** SL, TP, riesgo $, MFE/MAE y sesión se sincronizan desde MT5 (override manual si quieres)  
+  **EN:** SL, TP, risk $, MFE/MAE and session sync from MT5 (manual override still available)
+- **ES:** Tema Sangre (crimson) en packs de apariencia  
+  **EN:** Crimson appearance pack
+
+### Fixed / Corregido
+
+- **ES:** Inputs numéricos ya no “tragan” decimales; Avg R firmado; sesión y % resultado más correctos  
+  **EN:** Number inputs keep decimals; signed Avg R; session and result % fixes
+
+---
+
 ## [1.2.5] — 2026-08-13
 
 ### Added / Añadido
