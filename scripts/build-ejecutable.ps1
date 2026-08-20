@@ -126,6 +126,18 @@ if (-not (Test-Path -LiteralPath $builtPortable)) {
 Copy-Item -LiteralPath $builtPortable -Destination $finalPortable -Force
 Write-Host "Copiado a: $finalPortable"
 
+# Limpia salidas temporales viejas (deja solo el .exe final)
+Get-ChildItem -LiteralPath $releaseDir -Directory -ErrorAction SilentlyContinue |
+  Where-Object { $_.Name -like 'pack-*' -or $_.Name -eq 'win-unpacked' } |
+  ForEach-Object {
+    try {
+      Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction Stop
+      Write-Host "Limpieza: $($_.Name)" -ForegroundColor DarkGray
+    } catch {
+      Write-Host "No se pudo borrar $($_.Name) (en uso)" -ForegroundColor Yellow
+    }
+  }
+
 Write-Host "`n=== LISTO ==="
 $release = Join-Path $root "release"
 $portable = Join-Path $release "Trading-Journal.exe"

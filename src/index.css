@@ -28,7 +28,9 @@
 }
 
 :root {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: var(--font);
+  font-family: var(--font);
   line-height: 1.5;
   font-weight: 400;
   color: var(--text);

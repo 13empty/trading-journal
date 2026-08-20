@@ -105,10 +105,12 @@ export function evaluateThresholdRules(input: {
   if (settings.dailyLossLimit != null && settings.dailyLossLimit > 0) {
     const limit = Math.abs(Number(settings.dailyLossLimit))
     const hit = dayPnl <= -limit
+    const used = dayPnl < 0 ? Math.min(100, (Math.abs(dayPnl) / limit) * 100) : 0
     rules.push({
       id: 'daily_loss',
       status: hit ? 'warn' : 'ok',
       detail: `${dayPnl.toFixed(2)} / −${limit.toFixed(2)}`,
+      progress: used,
     })
   } else {
     rules.push({ id: 'daily_loss', status: 'off' })
@@ -121,6 +123,7 @@ export function evaluateThresholdRules(input: {
       id: 'max_trades',
       status: count >= max ? 'warn' : 'ok',
       detail: `${count} / ${max}`,
+      progress: Math.min(100, (count / max) * 100),
     })
   } else {
     rules.push({ id: 'max_trades', status: 'off' })
@@ -137,6 +140,7 @@ export function evaluateThresholdRules(input: {
         : revenge.openAfterLoss
           ? 'open'
           : undefined,
+      progress: revenge.risky ? 100 : 0,
     })
   } else {
     rules.push({ id: 'revenge_risk', status: 'off' })
@@ -151,12 +155,26 @@ export function evaluateThresholdRules(input: {
       id: 'drawdown_peak',
       status: dd.pct >= ddLimit && dd.amount > 0 ? 'warn' : 'ok',
       detail: `${dd.pct.toFixed(1)}% / ${ddLimit}%`,
+      progress: Math.min(100, (dd.pct / ddLimit) * 100),
     })
   } else {
     rules.push({ id: 'drawdown_peak', status: 'off' })
   }
 
   return rules
+}
+
+/** Day-scoped stop rules (loss / trades / revenge) — not account drawdown. */
+export function isDayStopRule(id: ThresholdRuleId): boolean {
+  return id === 'daily_loss' || id === 'max_trades' || id === 'revenge_risk'
+}
+
+export function hasDayStopWarning(rules: ThresholdRuleState[]): boolean {
+  return rules.some((r) => r.status === 'warn' && isDayStopRule(r.id))
+}
+
+export function drawdownPeakWarning(rules: ThresholdRuleState[]): ThresholdRuleState | undefined {
+  return rules.find((r) => r.id === 'drawdown_peak' && r.status === 'warn')
 }
 
 export function hasThresholdWarning(rules: ThresholdRuleState[]): boolean {

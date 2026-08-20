@@ -5,6 +5,8 @@ interface Props {
   height?: number
   compact?: boolean
   showLabels?: boolean
+  /** Stretch chart to fill parent (home right panel). */
+  stretch?: boolean
 }
 
 type Pt = { x: number; y: number }
@@ -69,13 +71,13 @@ function areaPath(points: Pt[], baseY: number): string {
   return `${monotonePath(points)} L ${last.x} ${baseY} L ${first.x} ${baseY} Z`
 }
 
-export function EquityCurve({ points, height = 112, compact = false, showLabels }: Props) {
+export function EquityCurve({ points, height = 112, compact = false, showLabels, stretch = false }: Props) {
   if (points.length < 2) {
     return <p className="empty chart-empty">—</p>
   }
 
   const w = 360
-  const h = height
+  const h = stretch ? 200 : height
   const pad = { t: 12, r: 8, b: 8, l: 8 }
   const plotW = w - pad.l - pad.r
   const plotH = h - pad.t - pad.b
@@ -106,8 +108,8 @@ export function EquityCurve({ points, height = 112, compact = false, showLabels 
     <div className="equity-curve-wrap">
       <svg
         viewBox={`0 0 ${w} ${h}`}
-        className={`equity-curve equity-curve-premium ${trend}`}
-        preserveAspectRatio="xMidYMid meet"
+        className={`equity-curve equity-curve-premium ${trend}${stretch ? ' stretch' : ''}`}
+        preserveAspectRatio={stretch ? 'none' : 'xMidYMid meet'}
         role="img"
         aria-label="Equity curve"
       >

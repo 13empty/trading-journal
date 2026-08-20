@@ -209,9 +209,11 @@ export interface Translations {
     short: string
   }
   nav: {
+    calendar: string
     day: string
     analytics: string
     projection: string
+    sync: string
     settings: string
   }
   projection: {
@@ -280,6 +282,7 @@ export interface Translations {
     setupResultsHint: string
     resultR: string
     journalTip: string
+    tipDismiss: string
     reviewTitle: string
     reviewEntry: string
     reviewSl: string
@@ -436,10 +439,20 @@ export interface Translations {
     appearance_cyber_desc: string
     appearance_crimson: string
     appearance_crimson_desc: string
+    appearance_ember: string
+    appearance_ember_desc: string
+    appearance_aurora: string
+    appearance_aurora_desc: string
+    appearance_terminal: string
+    appearance_terminal_desc: string
     appearance_slate: string
     appearance_slate_desc: string
     appearance_light: string
     appearance_light_desc: string
+    appearance_ivory: string
+    appearance_ivory_desc: string
+    appearanceMore: string
+    appearanceLess: string
     goalsTitle: string
     goalsHint: string
     autoCalcProfitGoals: string
@@ -497,6 +510,7 @@ export interface Translations {
     maxTradesPerDay: string
     revengeCooldown: string
     maxDrawdownPct: string
+    maxDrawdownPctHint: string
     alertOnThresholds: string
     enableTradingRules: string
     autoCloseOnDayRule: string
@@ -595,6 +609,8 @@ export interface Translations {
   }
   notifications: {
     ruleBreached: string
+    /** Softer alert when only drawdown-from-peak is active */
+    drawdownBreached: string
     goalReached: string
     mt5Disconnected: string
     bridgeOffline: string
@@ -625,13 +641,21 @@ export interface Translations {
     revengeAfterLoss: string
     revengeOpenAfterLoss: string
     interruptBanner: string
+    /** When only drawdown-from-peak is breached (not a "stop today" day rule) */
+    interruptBannerDrawdown: string
     settingsTitle: string
     settingsHint: string
     dailyLossLimit: string
     maxTradesPerDay: string
     revengeCooldown: string
     maxDrawdownPct: string
+    maxDrawdownPctHint: string
     alertOnThresholds: string
+    riskLow: string
+    riskMedium: string
+    riskHigh: string
+    riskOff: string
+    riskStatusLabel: string
   }
   profitGoals: {
     title: string
@@ -643,6 +667,22 @@ export interface Translations {
     statusProgress: string
     statusOff: string
     reachedBanner: string
+    gaugeMonthly: string
+  }
+  statsBar: {
+    title: string
+    balance: string
+    equity: string
+    balanceEquity: string
+    netProfit: string
+    trades: string
+    winRate: string
+    profitFactor: string
+    maxDrawdown: string
+  }
+  syncHub: {
+    title: string
+    subtitle: string
   }
   riskAdvice: {
     title: string

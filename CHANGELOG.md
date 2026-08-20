@@ -7,6 +7,30 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.7] — 2026-08-20
+
+### Added / Añadido
+
+- **ES:** Layout home tipo mockup: rail de navegación, calendario + stats, panel derecho (Diario del día, Metas, Reglas)  
+  **EN:** Mockup-style home layout: nav rail, calendar + stats, right panel (day diary, goals, rules)
+- **ES:** Ventanas secundarias Electron para Diario, Analytics, Sync, Opciones y Proyección  
+  **EN:** Secondary Electron windows for Diary, Analytics, Sync, Options and Projection
+- **ES:** Header del calendario horizontal (mes + flechas, PnL mensual, toggles `$` / `%` / `$+%`)  
+  **EN:** Horizontal calendar header (month + arrows, monthly PnL, `$` / `%` / `$+%` toggles)
+- **ES:** Celdas del calendario cuadradas con glow de PnL alineado al card del día  
+  **EN:** Square calendar cells with PnL glow matched to the day card
+- **ES:** Sincronización de tema/ajustes entre ventanas (storage + BroadcastChannel)  
+  **EN:** Theme/settings sync across windows (storage + BroadcastChannel)
+
+### Changed / Cambiado
+
+- **ES:** Home estático sin curva de equity ni Apariencia en la columna derecha  
+  **EN:** Static home without equity curve or Appearance in the right column
+- **ES:** Metas y reglas viven en el panel derecho del home (dock solo en vistas secundarias)  
+  **EN:** Goals and rules live in the home right panel (dock only on secondary views)
+
+---
+
 ## [1.2.6] — 2026-08-13
 
 ### Added / Añadido

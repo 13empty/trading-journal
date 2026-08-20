@@ -138,6 +138,8 @@ export interface ThresholdRuleState {
   id: ThresholdRuleId
   status: ThresholdStatus
   detail?: string
+  /** 0–100 usage of the limit (for progress bars) */
+  progress?: number
 }
 
 export type TradingSession = 'asia' | 'london' | 'ny' | 'other'

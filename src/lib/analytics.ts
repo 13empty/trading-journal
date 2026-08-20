@@ -104,10 +104,11 @@ export function tradeHoldMinutes(trade: Trade): number | null {
 }
 
 export function formatDuration(minutes: number | null): string {
-  if (minutes == null) return '—'
-  if (minutes < 60) return `${minutes}m`
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
+  if (minutes == null || !Number.isFinite(minutes) || minutes < 0) return '—'
+  const total = Math.round(minutes)
+  if (total < 60) return `${total}m`
+  const h = Math.floor(total / 60)
+  const m = total % 60
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 

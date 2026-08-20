@@ -26,6 +26,16 @@ let mt5SyncProc = null
 let mt5StopRestart = false
 let appUpdater = null
 const children = []
+/** @type {Map<string, import('electron').BrowserWindow>} */
+const viewWindows = new Map()
+
+const VIEW_TITLES = {
+  day: 'Diario',
+  analytics: 'Analytics',
+  projection: 'Proyección',
+  sync: 'Sync',
+  settings: 'Opciones',
+}
 
 function appRoot() {
   return path.join(__dirname, '..')
@@ -402,6 +412,43 @@ function registerDesktopIpc() {
     appUpdater?.install?.()
     return { ok: true }
   })
+
+  ipcMain.handle('desktop:open-view', (_e, payload) => {
+    const view = String(payload?.view || '')
+    if (!VIEW_TITLES[view]) return { ok: false, error: 'invalid_view' }
+
+    const existing = viewWindows.get(view)
+    if (existing && !existing.isDestroyed()) {
+      if (existing.isMinimized()) existing.restore()
+      existing.focus()
+      return { ok: true, focused: true }
+    }
+
+    const win = createAppWindow({
+      title: `Trading Journal — ${VIEW_TITLES[view]}`,
+      width: 1100,
+      height: 820,
+      minWidth: 720,
+      minHeight: 560,
+    })
+    const base = isDevMode ? 'http://127.0.0.1:5173' : APP_URL
+    win.loadURL(`${base}/?view=${encodeURIComponent(view)}`)
+    viewWindows.set(view, win)
+    win.on('closed', () => {
+      if (viewWindows.get(view) === win) viewWindows.delete(view)
+    })
+    win.once('ready-to-show', () => {
+      if (!win.isDestroyed()) win.show()
+    })
+    return { ok: true }
+  })
+
+  ipcMain.handle('desktop:focus-main', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return { ok: false }
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+    return { ok: true }
+  })
 }
 
 function preloadPath() {
@@ -763,7 +810,7 @@ function windowIcon() {
   return undefined
 }
 
-function createMainWindow() {
+function createAppWindow(overrides = {}) {
   const isWin = process.platform === 'win32'
   const winOptions = {
     width: 1440,
@@ -781,6 +828,7 @@ function createMainWindow() {
       sandbox: false,
       preload: preloadPath(),
     },
+    ...overrides,
   }
 
   if (isWin) {
@@ -794,7 +842,11 @@ function createMainWindow() {
     winOptions.titleBarStyle = 'hiddenInset'
   }
 
-  mainWindow = new BrowserWindow(winOptions)
+  return new BrowserWindow(winOptions)
+}
+
+function createMainWindow() {
+  mainWindow = createAppWindow()
 
   mainWindow.loadURL(isDevMode ? 'http://127.0.0.1:5173' : APP_URL)
 
@@ -828,6 +880,10 @@ function createMainWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null
+    for (const win of viewWindows.values()) {
+      if (win && !win.isDestroyed()) win.close()
+    }
+    viewWindows.clear()
   })
 }
 

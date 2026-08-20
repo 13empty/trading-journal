@@ -209,40 +209,45 @@ export function Calendar({
     <div className={`calendar calendar-pnl-${displayMode}`}>
 
       <div className="calendar-nav">
-        <button type="button" className="calendar-nav-btn" onClick={() => onMonthChange(subMonths(month, 1))} aria-label={calendar.prevMonth}>
-          ‹
-        </button>
-
-        <div className="calendar-nav-center">
+        <div className="calendar-nav-month">
           <span className="calendar-title">{formatDisplayDate(month, 'MMMM yyyy', dateLocale)}</span>
-          {monthPnl.hasData && (
-            <span className={`calendar-month-total ${pnlClass(monthPnl.total)}`}>
-              {displayMode === 'dollar' && formatMoney(monthPnl.total)}
-              {displayMode === 'percent' && (monthPct != null ? formatCompactPercent(monthPct) : '—')}
-              {displayMode === 'both' &&
-                `${formatMoney(monthPnl.total)} · ${monthPct != null ? formatCompactPercent(monthPct) : '—'}`}
-            </span>
-          )}
-        </div>
-
-        <div className="calendar-mode-toggle" role="group" aria-label={calendar.displayModeLabel}>
-          {displayModes.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              className={displayMode === opt.id ? 'active' : ''}
-              aria-pressed={displayMode === opt.id}
-              onClick={() => onDisplayModeChange(opt.id)}
-              title={opt.label}
-            >
-              {opt.label}
+          <div className="calendar-nav-arrows" role="group" aria-label={calendar.prevMonth}>
+            <button type="button" className="calendar-nav-btn" onClick={() => onMonthChange(subMonths(month, 1))} aria-label={calendar.prevMonth}>
+              ‹
             </button>
-          ))}
+            <button type="button" className="calendar-nav-btn" onClick={() => onMonthChange(addMonths(month, 1))} aria-label={calendar.nextMonth}>
+              ›
+            </button>
+          </div>
         </div>
 
-        <button type="button" className="calendar-nav-btn" onClick={() => onMonthChange(addMonths(month, 1))} aria-label={calendar.nextMonth}>
-          ›
-        </button>
+        <div className="calendar-nav-meta">
+          {monthPnl.hasData && (
+            <div className="calendar-month-total">
+              <span className="calendar-month-total-label">{calendar.monthTotal}</span>
+              <span className={`calendar-month-total-value ${pnlClass(monthPnl.total)}`}>
+                {displayMode === 'dollar' && formatMoney(monthPnl.total)}
+                {displayMode === 'percent' && (monthPct != null ? formatCompactPercent(monthPct) : '—')}
+                {displayMode === 'both' &&
+                  `${formatMoney(monthPnl.total)}  ${monthPct != null ? formatCompactPercent(monthPct) : '—'}`}
+              </span>
+            </div>
+          )}
+          <div className="calendar-mode-toggle" role="group" aria-label={calendar.displayModeLabel}>
+            {displayModes.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className={displayMode === opt.id ? 'active' : ''}
+                aria-pressed={displayMode === opt.id}
+                onClick={() => onDisplayModeChange(opt.id)}
+                title={opt.label}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="calendar-grid-wrap">

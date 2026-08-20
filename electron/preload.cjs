@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('desktop', {
     ipcRenderer.invoke('media:delete-trade-screenshot', relativePath),
   openScreenshotsFolder: (tradeKey) =>
     ipcRenderer.invoke('media:open-screenshots-folder', tradeKey),
+  openView: (view) => ipcRenderer.invoke('desktop:open-view', { view }),
+  focusMain: () => ipcRenderer.invoke('desktop:focus-main'),
   checkUpdates: () => ipcRenderer.invoke('update:check'),
   downloadUpdate: () => ipcRenderer.invoke('update:download'),
   installUpdate: () => ipcRenderer.invoke('update:install'),

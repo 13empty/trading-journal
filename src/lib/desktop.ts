@@ -58,6 +58,8 @@ declare global {
         relativePath: string,
       ) => Promise<{ ok: boolean; error?: string }>
       openScreenshotsFolder: (tradeKey: string) => Promise<{ ok: boolean; error?: string }>
+      openView: (view: string) => Promise<{ ok: boolean; focused?: boolean; error?: string }>
+      focusMain: () => Promise<{ ok: boolean }>
       checkUpdates: () => Promise<{ state: string }>
       downloadUpdate: () => Promise<{ ok: boolean }>
       installUpdate: () => Promise<{ ok: boolean }>
@@ -155,4 +157,35 @@ export async function downloadUpdateDesktop(): Promise<void> {
 
 export async function installUpdateDesktop(): Promise<void> {
   await window.desktop?.installUpdate()
+}
+
+export type AppWindowView = 'day' | 'analytics' | 'projection' | 'sync' | 'settings'
+
+export function readAppViewParam(): 'home' | AppWindowView {
+  try {
+    const v = new URLSearchParams(window.location.search).get('view')
+    if (v === 'day' || v === 'analytics' || v === 'projection' || v === 'sync' || v === 'settings') {
+      return v
+    }
+  } catch {
+    /* ignore */
+  }
+  return 'home'
+}
+
+export async function openAppView(view: AppWindowView): Promise<void> {
+  if (window.desktop?.openView) {
+    await window.desktop.openView(view)
+    return
+  }
+  const url = `${window.location.origin}${window.location.pathname}?view=${encodeURIComponent(view)}`
+  window.open(url, `tj-${view}`)
+}
+
+export async function focusMainWindow(): Promise<void> {
+  if (window.desktop?.focusMain) {
+    await window.desktop.focusMain()
+    return
+  }
+  window.focus()
 }

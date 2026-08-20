@@ -4,13 +4,17 @@ import { parseLocalDateKey } from './lib/mt5Date'
 import type { CashMovement, CashType } from './types/account'
 import type { Trade } from './types/trade'
 import { Calendar } from './components/Calendar'
-import { Mt5StatusPanel } from './components/Mt5Status'
 import { SystemHealthPanel, type HealthCheck } from './components/SystemHealth'
 import { AnalyticsPanel } from './components/AnalyticsPanel'
 import { ProjectionPanel } from './components/ProjectionPanel'
 import { DayHero } from './components/DayHero'
 import { DayStatusChips } from './components/DayStatusChips'
-import { DayInsightsSection } from './components/DayInsightsSection'
+import { SideNav, type MainTab } from './components/SideNav'
+import { AccountStatsBar } from './components/AccountStatsBar'
+import { SyncHubPanel } from './components/SyncHubPanel'
+import { HomeRightPanel } from './components/HomeRightPanel'
+import { ProgressDock } from './components/ProgressDock'
+import { Mt5StatusButton } from './components/Mt5StatusButton'
 import { DayNotesModal } from './components/DayNotesModal'
 import { buildEquityCurve, effectiveRR, realizedR } from './lib/analytics'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -23,6 +27,7 @@ import { SessionSummaryModal } from './components/SessionSummaryModal'
 import { TradeMetaModal } from './components/TradeMetaModal'
 import { TradeReviewModal } from './components/TradeReviewModal'
 import { useMt5Sync } from './hooks/useMt5Sync'
+import { useCalendarSplit, useNavSplit } from './hooks/useCalendarSplit'
 import {
   buildAccountSummary,
   buildDayActivities,
@@ -46,6 +51,7 @@ import {
   saveCashMovements,
   saveSettings,
   saveTrades,
+  subscribeSettings,
 } from './lib/storage'
 import {
   loadDailyNotes,
@@ -54,11 +60,14 @@ import {
   saveDailyNotes,
   saveTradeMetaMap,
   saveWeeklyNotes,
+  tradeMetaKey as journalTradeKey,
 } from './lib/journalStorage'
-import type { DailyNote, TradeMeta, WeeklyNote } from './types/journal'
+import type { DailyNote, TradeMeta, WeeklyNote, ThresholdRuleId } from './types/journal'
 import {
   alertsEnabled,
+  drawdownPeakWarning,
   evaluateThresholdRulesForDate,
+  hasDayStopWarning,
   hasThresholdWarning,
   isTradingRulesEnabled,
   THRESHOLD_LABEL_KEYS,
@@ -66,23 +75,19 @@ import {
 import {
   evaluateProfitGoals,
   hasAnyProfitGoal,
-  hasReachedProfitGoal,
   PROFIT_GOAL_LABEL_KEYS,
 } from './lib/profitGoals'
 import { notifyOnce, pruneNotifyKeys } from './lib/notifyOnce'
 import { computeDayJournalStats, tradeHasJournalMeta } from './lib/tradeJournalStats'
 import { buildWeeklySummary } from './lib/weeklySummary'
 import { type BackupBundle } from './lib/backup'
-import { desktopNotify, getDesktopInfo, setTitleBarThemeDesktop } from './lib/desktop'
+import { desktopNotify, getDesktopInfo, setTitleBarThemeDesktop, readAppViewParam, openAppView, focusMainWindow, type AppWindowView } from './lib/desktop'
 import { requestCloseAllPositions, waitForCloseAllResult } from './lib/mt5Bridge'
 import { applyAppearance, resolveAppearance } from './lib/theme'
-import { tradeMetaKey as journalTradeKey } from './lib/journalStorage'
-import type { ThresholdRuleId } from './types/journal'
 import {
   getDateLocale,
   getTranslations,
   interpolate,
-  SUPPORTED_LANGUAGES,
   type AppLanguage,
 } from './i18n'
 import './App.css'
@@ -115,7 +120,11 @@ function App() {
   const [showCashForm, setShowCashForm] = useState(false)
   const [tradeForm, setTradeForm] = useState(() => emptyTrade(format(new Date(), 'yyyy-MM-dd')))
   const [cashForm, setCashForm] = useState({ type: 'deposit' as CashType, amount: 0, notes: '' })
-  const [mainTab, setMainTab] = useState<'day' | 'analytics' | 'projection' | 'settings'>('day')
+  const windowView = useMemo(() => readAppViewParam(), [])
+  const isHomeWindow = windowView === 'home'
+  const [mainTab, setMainTab] = useState<MainTab>(() =>
+    windowView === 'home' ? 'calendar' : windowView,
+  )
   const [showWelcome, setShowWelcome] = useState(false)
   const [showBrokerWizard, setShowBrokerWizard] = useState(false)
   const [showSessionSummary, setShowSessionSummary] = useState(false)
@@ -126,8 +135,35 @@ function App() {
   const [weeklyNotesMap, setWeeklyNotesMap] = useState<Record<string, WeeklyNote>>(() => loadWeeklyNotes())
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
   const [reviewingTrade, setReviewingTrade] = useState<Trade | null>(null)
+  const [journalTipVisible, setJournalTipVisible] = useState(() => {
+    try {
+      return localStorage.getItem('tj-journal-tip-dismissed') !== '1'
+    } catch {
+      return true
+    }
+  })
   const fileRef = useRef<HTMLInputElement>(null)
   const mt5ConnectedOnce = useRef(false)
+  const {
+    pct: calendarColPct,
+    bodyRef: mainBodyRef,
+    onPointerDown: onSplitDown,
+    onPointerMove: onSplitMove,
+    endDrag: onSplitEnd,
+    nudge: nudgeCalendarSplit,
+    min: splitMin,
+    max: splitMax,
+  } = useCalendarSplit()
+  const {
+    width: navRailWidth,
+    shellRef: appShellRef,
+    onPointerDown: onNavSplitDown,
+    onPointerMove: onNavSplitMove,
+    endDrag: onNavSplitEnd,
+    nudge: nudgeNavSplit,
+    min: navSplitMin,
+    max: navSplitMax,
+  } = useNavSplit()
 
   const persistTrades = useCallback((next: Trade[]) => {
     setTrades(next)
@@ -297,7 +333,11 @@ function App() {
 
   const latestTradeDate = useMemo(() => {
     if (activeTrades.length === 0) return null
-    return activeTrades.map((t) => t.date).sort().pop() ?? null
+    let latest = activeTrades[0].date
+    for (let i = 1; i < activeTrades.length; i++) {
+      if (activeTrades[i].date > latest) latest = activeTrades[i].date
+    }
+    return latest
   }, [activeTrades])
 
   const activities = useMemo(
@@ -387,13 +427,6 @@ function App() {
     () => evaluateProfitGoals(settings, dayMap, selectedDate),
     [settings, dayMap, selectedDate],
   )
-  const insightsDefaultOpen = useMemo(
-    () =>
-      hasThresholdWarning(thresholdRulesForDay) ||
-      hasReachedProfitGoal(profitGoalsForDay) ||
-      (selectedDate === todayKey && todayRuleBreach),
-    [thresholdRulesForDay, profitGoalsForDay, selectedDate, todayKey, todayRuleBreach],
-  )
   const todayGoals = useMemo(
     () => evaluateProfitGoals(settings, dayMap, todayKey),
     [settings, dayMap, todayKey],
@@ -412,6 +445,14 @@ function App() {
     () => todayThresholdRules.filter((r) => r.status === 'warn'),
     [todayThresholdRules],
   )
+  const todayHasDayStop = useMemo(
+    () => hasDayStopWarning(todayThresholdRules),
+    [todayThresholdRules],
+  )
+  const todayDrawdownWarn = useMemo(
+    () => drawdownPeakWarning(todayThresholdRules),
+    [todayThresholdRules],
+  )
   const thresholdNotified = useRef<Set<string>>(new Set())
   const goalNotified = useRef<Set<string>>(new Set())
   /** Confirmed successful auto-close for a given day (retry allowed until then). */
@@ -427,6 +468,16 @@ function App() {
     const preset = applyAppearance(id)
     void setTitleBarThemeDesktop(preset.titleBar)
   }, [settings.appearance, settings.uiMode])
+
+  // Keep appearance / language / etc in sync across secondary windows.
+  useEffect(() => {
+    return subscribeSettings((next) => {
+      setSettings((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(next)) return prev
+        return next
+      })
+    })
+  }, [])
 
   useEffect(() => {
     const active = new Set(
@@ -454,24 +505,23 @@ function App() {
       if (rule.status !== 'warn') continue
       const key = `${todayKey}:${rule.id}`
       const label = t.thresholds[THRESHOLD_LABEL_KEYS[rule.id]]
-      notifyOnce(
-        thresholdNotified.current,
-        key,
-        t.brand.title,
-        tf(t.notifications.ruleBreached, { rule: label }),
-        notifyEnabled,
-      )
+      const msg =
+        rule.id === 'drawdown_peak'
+          ? tf(t.notifications.drawdownBreached, { detail: rule.detail ?? label })
+          : tf(t.notifications.ruleBreached, { rule: label })
+      notifyOnce(thresholdNotified.current, key, t.brand.title, msg, notifyEnabled)
     }
   }, [
     todayRuleBreach,
     todayThresholdRules,
     todayKey,
     settings,
-    t.brand.title,
-    t.thresholds,
-    t.notifications.ruleBreached,
-    tf,
     notifyEnabled,
+    t.brand.title,
+    t.notifications.ruleBreached,
+    t.notifications.drawdownBreached,
+    t.thresholds,
+    tf,
   ])
 
   useEffect(() => {
@@ -628,10 +678,34 @@ function App() {
 
   const handleSelectDate = (date: string) => {
     setSelectedDate(date)
-    setMainTab('day')
     setTradeForm(emptyTrade(date))
     setCalendarMonth(startOfMonth(parseLocalDateKey(date)))
+    // Home keeps the mockup; secondary in-app flows still open Diario content.
+    if (!isHomeWindow && mainTab !== 'day') setMainTab('day')
   }
+
+  const handleNavChange = useCallback(
+    (tab: MainTab) => {
+      if (tab === 'calendar') {
+        if (!isHomeWindow) void focusMainWindow()
+        return
+      }
+      if (isHomeWindow || tab !== windowView) {
+        void openAppView(tab as AppWindowView)
+        return
+      }
+      setMainTab(tab)
+    },
+    [isHomeWindow, windowView],
+  )
+
+  useEffect(() => {
+    if (isHomeWindow) {
+      document.title = 'Trading Journal'
+      return
+    }
+    document.title = `Trading Journal — ${t.nav[windowView]}`
+  }, [isHomeWindow, windowView, t.nav])
 
   const handleImport = async (file: File) => {
     setImportMsg(null)
@@ -731,156 +805,155 @@ function App() {
     }
   }
 
-  const handleLanguageChange = (next: AppLanguage) => {
-    persistSettings({ ...settings, language: next })
-  }
-
   return (
     <>
     <div className="titlebar-drag-region" aria-hidden />
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="sidebar-scroll">
-        <header className="sidebar-top">
-          <div className="sidebar-brand">
-            <span className="logo">TJ</span>
-            <div>
-              <h1>{t.brand.title}</h1>
-              <p>{t.brand.subtitle}</p>
-            </div>
-          </div>
-          <label className="lang-select lang-select-inline">
-            <select
-              value={lang}
-              onChange={(e) => handleLanguageChange(e.target.value as AppLanguage)}
-              aria-label={t.language.label}
-            >
-              {SUPPORTED_LANGUAGES.map((opt) => (
-                <option key={opt.code} value={opt.code}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </header>
-
-        <Calendar
-          month={calendarMonth}
-          onMonthChange={setCalendarMonth}
-          selectedDate={selectedDate}
-          onSelectDate={handleSelectDate}
-          dayMap={dayMap}
-          cash={cashForView}
-          calendar={t.calendar}
-          dateLocale={dateLocale}
-          displayMode={settings.calendarPnlDisplay ?? 'dollar'}
-          onDisplayModeChange={(mode) => persistSettings({ ...settings, calendarPnlDisplay: mode })}
-          initialBalance={settings.initialBalance}
-        />
-        </div>
-
-        <div className="sidebar-footer">
-        <Mt5StatusPanel
-          bridgeOnline={bridgeOnline}
-          mt5Connected={mt5Connected}
-          status={mt5Status}
-          lastSyncAt={lastSyncAt}
-          tradeCount={bridgeTradeCount || activeTrades.length}
-          liveTradeCount={activeTrades.length || bridgeTradeCount}
-          usingLiveTrades={usingLiveData}
-          openPositions={openPositions}
-          floatingPnl={floatingPnl}
-          syncError={syncError}
-          onSyncNow={() => void verifyAll()}
-          mt5={t.mt5}
-          dateLocale={dateLocale}
-          compact
-        />
-
-        <div className="sidebar-actions">
-          <button type="button" className="btn-primary full" onClick={() => setShowSessionSummary(true)}>
-            {t.session.button}
-          </button>
-          <button type="button" className="btn-secondary full sidebar-action-full" onClick={() => setShowWeeklySummary(true)}>
-            {t.weekly.button}
-          </button>
-          <button type="button" className="btn-secondary full btn-sidebar-muted" onClick={() => fileRef.current?.click()}>
-            {t.sidebar.importExcel}
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) void handleImport(f)
-              e.target.value = ''
+    <div
+      className={`app-shell${isHomeWindow ? ' app-shell-home' : ' app-shell-view'}`}
+      ref={appShellRef}
+      style={{ ['--nav-rail-width' as string]: `${navRailWidth}px` }}
+    >
+      <SideNav
+        active={isHomeWindow ? 'calendar' : mainTab}
+        onChange={handleNavChange}
+        t={t.nav}
+        brandTitle={t.brand.title}
+        footer={
+          <Mt5StatusButton
+            bridgeOnline={bridgeOnline}
+            mt5Connected={mt5Connected}
+            onOpenSync={() => void openAppView('sync')}
+            label="MT5"
+            titles={{
+              connected: t.mt5.title,
+              waiting: t.mt5.waiting,
+              offline: t.mt5.bridgeOff,
             }}
           />
-          <button type="button" className="btn-secondary full" onClick={() => setShowCashForm((v) => !v)}>
-            {t.sidebar.depositWithdraw}
-          </button>
-        </div>
+        }
+      />
 
-        {importMsg && <p className="import-msg sidebar-msg">{importMsg}</p>}
+      <div
+        className="split-resize-handle split-resize-handle-nav"
+        role="separator"
+        aria-orientation="vertical"
+        aria-valuenow={Math.round(navRailWidth)}
+        aria-valuemin={navSplitMin}
+        aria-valuemax={navSplitMax}
+        aria-label="Resize navigation"
+        tabIndex={0}
+        onPointerDown={onNavSplitDown}
+        onPointerMove={onNavSplitMove}
+        onPointerUp={onNavSplitEnd}
+        onPointerCancel={onNavSplitEnd}
+        onLostPointerCapture={onNavSplitEnd}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowLeft') {
+            e.preventDefault()
+            nudgeNavSplit(-4)
+          } else if (e.key === 'ArrowRight') {
+            e.preventDefault()
+            nudgeNavSplit(4)
+          }
+        }}
+      />
+
+      <div className="app-main">
+      <div
+        className="app-main-body"
+        ref={mainBodyRef}
+        style={isHomeWindow ? { ['--cal-col-pct' as string]: `${calendarColPct}%` } : undefined}
+      >
+      {isHomeWindow && (
+      <>
+      <aside className="calendar-col">
+        <div className="calendar-col-scroll">
+          <Calendar
+            month={calendarMonth}
+            onMonthChange={setCalendarMonth}
+            selectedDate={selectedDate}
+            onSelectDate={handleSelectDate}
+            dayMap={dayMap}
+            cash={cashForView}
+            calendar={t.calendar}
+            dateLocale={dateLocale}
+            displayMode={settings.calendarPnlDisplay ?? 'both'}
+            onDisplayModeChange={(mode) => persistSettings({ ...settings, calendarPnlDisplay: mode })}
+            initialBalance={settings.initialBalance}
+          />
+          <AccountStatsBar
+            balance={displayBalance}
+            equity={mt5Status?.equity ?? settings.brokerEquity ?? null}
+            netProfit={displayAccount.accountProfit ?? closedPnl}
+            trades={tradesForView}
+            equityCurve={equityCurve}
+            t={t.statsBar}
+          />
         </div>
       </aside>
 
+      <div
+        className="split-resize-handle"
+        role="separator"
+        aria-orientation="vertical"
+        aria-valuenow={Math.round(calendarColPct)}
+        aria-valuemin={splitMin}
+        aria-valuemax={splitMax}
+        aria-label="Resize calendar"
+        tabIndex={0}
+        onPointerDown={onSplitDown}
+        onPointerMove={onSplitMove}
+        onPointerUp={onSplitEnd}
+        onPointerCancel={onSplitEnd}
+        onLostPointerCapture={onSplitEnd}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowLeft') {
+            e.preventDefault()
+            nudgeCalendarSplit(-2)
+          } else if (e.key === 'ArrowRight') {
+            e.preventDefault()
+            nudgeCalendarSplit(2)
+          }
+        }}
+      />
+      </>
+      )}
+
       <div className="content">
-        <header className="app-topbar">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) void handleImport(f)
+            e.target.value = ''
+          }}
+        />
+        <div className="content-scroll">
+        <header className={`app-topbar${mainTab === 'calendar' ? ' app-topbar-minimal' : ''}`}>
+        {mainTab !== 'calendar' && (
         <SystemHealthPanel
           checks={healthChecks}
           onRefresh={() => void verifyAll()}
           refreshing={verifying}
           health={t.health}
         />
-
+        )}
         <UpdateBanner t={t.updates} />
-
-        <nav className="main-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainTab === 'day'}
-            className={mainTab === 'day' ? 'active' : ''}
-            onClick={() => setMainTab('day')}
-          >
-            {t.nav.day}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainTab === 'analytics'}
-            className={mainTab === 'analytics' ? 'active' : ''}
-            onClick={() => setMainTab('analytics')}
-          >
-            {t.nav.analytics}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainTab === 'projection'}
-            className={mainTab === 'projection' ? 'active' : ''}
-            onClick={() => setMainTab('projection')}
-          >
-            {t.nav.projection}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mainTab === 'settings'}
-            className={mainTab === 'settings' ? 'active' : ''}
-            onClick={() => setMainTab('settings')}
-          >
-            {t.nav.settings}
-          </button>
-        </nav>
         </header>
 
         {todayRuleBreach && (
-          <div className="threshold-interrupt" role="alert">
-            {t.thresholds.interruptBanner}
+          <div
+            className={`threshold-interrupt${todayHasDayStop ? '' : ' threshold-interrupt-dd'}`}
+            role="alert"
+          >
+            {todayHasDayStop
+              ? t.thresholds.interruptBanner
+              : interpolate(t.thresholds.interruptBannerDrawdown, {
+                  detail: todayDrawdownWarn?.detail ?? '—',
+                })}
             {todayBreachedRules.length > 0 && (
               <span className="threshold-interrupt-rules">
                 {' '}
@@ -890,7 +963,27 @@ function App() {
           </div>
         )}
 
-        {mainTab === 'settings' ? (
+        {mainTab === 'calendar' ? (
+          <HomeRightPanel
+            selectedDate={selectedDate}
+            selectedDay={selectedDay}
+            dayTradeCount={dayTrades.length}
+            dayWinRate={dayWinRate}
+            displayBalance={displayBalance}
+            equityPoints={equityPoints}
+            dateFormat={t.header.dateFormat}
+            dateLocale={dateLocale}
+            profitGoals={profitGoalsForDay}
+            thresholdRules={thresholdRulesForDay}
+            showGoals={hasAnyProfitGoal(settings)}
+            showRules={isTradingRulesEnabled(settings)}
+            tHero={t.dayHero}
+            tGoals={t.profitGoals}
+            tThresholds={t.thresholds}
+            goalsTitle={t.settings.goalsTitle}
+            rulesTitle={t.settings.thresholdsTitle}
+          />
+        ) : mainTab === 'settings' ? (
           <SettingsPanel
             settings={settings}
             onSettingsChange={persistSettings}
@@ -903,7 +996,38 @@ function App() {
             onResyncDone={() => void verifyAll()}
             t={t.settings}
             tLang={t.language}
-            tCalendar={t.calendar}
+            profitGoals={todayGoals}
+            thresholdRules={todayThresholdRules}
+            tGoals={t.profitGoals}
+            tThresholds={t.thresholds}
+          />
+        ) : mainTab === 'sync' ? (
+          <SyncHubPanel
+            bridgeOnline={bridgeOnline}
+            mt5Connected={mt5Connected}
+            status={mt5Status}
+            lastSyncAt={lastSyncAt}
+            tradeCount={bridgeTradeCount || activeTrades.length}
+            liveTradeCount={activeTrades.length || bridgeTradeCount}
+            usingLiveTrades={usingLiveData}
+            openPositions={openPositions}
+            floatingPnl={floatingPnl}
+            syncError={syncError}
+            onSyncNow={() => void verifyAll()}
+            onSessionSummary={() => setShowSessionSummary(true)}
+            onWeeklySummary={() => setShowWeeklySummary(true)}
+            onImportExcel={() => fileRef.current?.click()}
+            onCashForm={() => setShowCashForm(true)}
+            onProjection={() => void openAppView('projection')}
+            projectionLabel={t.nav.projection}
+            importMsg={importMsg}
+            mt5={t.mt5}
+            sessionButton={t.session.button}
+            weeklyButton={t.weekly.button}
+            importExcel={t.sidebar.importExcel}
+            depositWithdraw={t.sidebar.depositWithdraw}
+            dateLocale={dateLocale}
+            t={t.syncHub}
           />
         ) : mainTab === 'analytics' ? (
           <AnalyticsPanel
@@ -983,7 +1107,25 @@ function App() {
                   </div>
                 </div>
                 {dayJournalStats && <DayTradeJournalBar stats={dayJournalStats} t={t.dayJournal} />}
-                <p className="hint-inline journal-tip-banner">{t.journal.journalTip}</p>
+                {journalTipVisible ? (
+                  <div className="journal-tip-banner">
+                    <p>{t.journal.journalTip}</p>
+                    <button
+                      type="button"
+                      className="btn-ghost-sm tip-dismiss"
+                      onClick={() => {
+                        try {
+                          localStorage.setItem('tj-journal-tip-dismissed', '1')
+                        } catch {
+                          /* ignore */
+                        }
+                        setJournalTipVisible(false)
+                      }}
+                    >
+                      {t.journal.tipDismiss}
+                    </button>
+                  </div>
+                ) : null}
                 {selectedDay && (selectedDay.openCount ?? 0) > 0 && selectedDate === todayKey && (
                   <p className="day-open-hint">
                     {t.daySummary.openToday}: {selectedDay.openCount} ·{' '}
@@ -1152,21 +1294,24 @@ function App() {
                   </button>
                 </form>
               </section>
-
-              <DayInsightsSection
-                defaultOpen={insightsDefaultOpen}
-                showGoals={hasAnyProfitGoal(settings)}
-                showRules={isTradingRulesEnabled(settings)}
-                showGoalReachedMessage={settings.showGoalReachedMessage !== false}
-                profitGoals={profitGoalsForDay}
-                thresholdRules={thresholdRulesForDay}
-                t={t.dayTab}
-                tGoals={t.profitGoals}
-                tThresholds={t.thresholds}
-              />
             </main>
           </div>
         )}
+        </div>
+      </div>
+      </div>
+
+      {!isHomeWindow && (
+      <ProgressDock
+        goals={profitGoalsForDay}
+        rules={thresholdRulesForDay}
+        showGoals={hasAnyProfitGoal(settings)}
+        showRules={isTradingRulesEnabled(settings)}
+        tGoals={t.profitGoals}
+        tThresholds={t.thresholds}
+      />
+      )}
+      </div>
       </div>
 
       {showWelcome && (
@@ -1225,7 +1370,7 @@ function App() {
           onClose={() => setShowSessionSummary(false)}
           onEditNotes={() => {
             setShowSessionSummary(false)
-            setMainTab('day')
+            void openAppView('day')
           }}
         />
       )}
@@ -1338,7 +1483,6 @@ function App() {
           </div>
         </div>
       )}
-    </div>
     </>
   )
 }

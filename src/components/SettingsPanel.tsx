@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AppearanceId, AppSettings, CalendarPnlDisplay } from '../types/account'
+import type { AppearanceId, AppSettings } from '../types/account'
 import type { CashMovement } from '../types/account'
 import type { Trade } from '../types/trade'
 import type { DailyNote, TradeMeta } from '../types/journal'
@@ -21,7 +21,11 @@ import {
 import { reloadBridgeFromDisk } from '../lib/mt5Bridge'
 import { APP_VERSION } from '../lib/appVersion'
 import { deriveProfitGoals } from '../lib/profitGoals'
-import { APPEARANCE_PRESETS, applyAppearance, resolveAppearance } from '../lib/theme'
+import type { ProfitGoalState } from '../lib/profitGoals'
+import type { ThresholdRuleState } from '../types/journal'
+import { MonthlyGoalGauge, RiskRulesSummary } from './OptionsProgress'
+import { APPEARANCE_PRESETS, FEATURED_APPEARANCE_IDS, applyAppearance, isLightAppearance, resolveAppearance } from '../lib/theme'
+import { formatMoney, pnlClass } from '../lib/aggregations'
 
 interface Props {
   settings: AppSettings
@@ -35,7 +39,10 @@ interface Props {
   onResyncDone: () => void
   t: Translations['settings']
   tLang: Translations['language']
-  tCalendar: Translations['calendar']
+  profitGoals?: ProfitGoalState[]
+  thresholdRules?: ThresholdRuleState[]
+  tGoals?: Translations['profitGoals']
+  tThresholds?: Translations['thresholds']
 }
 
 export function SettingsPanel({
@@ -50,7 +57,10 @@ export function SettingsPanel({
   onResyncDone,
   t,
   tLang,
-  tCalendar,
+  profitGoals,
+  thresholdRules,
+  tGoals,
+  tThresholds,
 }: Props) {
   const [info, setInfo] = useState<DesktopAppInfo | null>(null)
   const [logTail, setLogTail] = useState('')
@@ -62,6 +72,8 @@ export function SettingsPanel({
     void getDesktopInfo().then(setInfo)
     void readSyncLogTail(35).then(setLogTail)
   }, [])
+
+  const monthlyGoal = profitGoals?.find((g) => g.id === 'monthly' && g.status !== 'off')
 
   const handleExport = () => {
     downloadBackup(buildBackup({ trades, cash, settings, tradeMeta, dailyNotes }))
@@ -115,12 +127,23 @@ export function SettingsPanel({
   }
 
   const appearance = resolveAppearance(settings)
+  const [showMoreAppearances, setShowMoreAppearances] = useState(
+    () => !FEATURED_APPEARANCE_IDS.includes(resolveAppearance(settings)),
+  )
 
   const setAppearance = (id: AppearanceId) => {
     const preset = applyAppearance(id)
     void setTitleBarThemeDesktop(preset.titleBar)
-    onSettingsChange({ ...settings, appearance: id, uiMode: id === 'light' || id === 'slate' ? 'light' : 'dark' })
+    onSettingsChange({
+      ...settings,
+      appearance: id,
+      uiMode: isLightAppearance(id) ? 'light' : 'dark',
+    })
   }
+
+  const visibleAppearances = !showMoreAppearances
+    ? APPEARANCE_PRESETS.filter((p) => FEATURED_APPEARANCE_IDS.includes(p.id))
+    : APPEARANCE_PRESETS
 
   return (
     <div className="settings-panel">
@@ -150,9 +173,8 @@ export function SettingsPanel({
           <span className="label">{t.appearancePack}</span>
           <p className="hint-inline">{t.appearanceHint}</p>
           <div className="appearance-grid" role="group" aria-label={t.appearancePack}>
-            {APPEARANCE_PRESETS.map((preset) => {
+            {visibleAppearances.map((preset) => {
               const labelKey = `appearance_${preset.id}` as keyof typeof t
-              const descKey = `appearance_${preset.id}_desc` as keyof typeof t
               return (
                 <button
                   key={preset.id}
@@ -160,6 +182,7 @@ export function SettingsPanel({
                   className={`appearance-card${appearance === preset.id ? ' active' : ''}`}
                   aria-pressed={appearance === preset.id}
                   onClick={() => setAppearance(preset.id)}
+                  title={t[`appearance_${preset.id}_desc` as keyof typeof t] as string}
                 >
                   <div className="appearance-preview" aria-hidden>
                     <div
@@ -180,31 +203,21 @@ export function SettingsPanel({
                     </div>
                   </div>
                   <span className="appearance-card-label">{t[labelKey] as string}</span>
-                  <span className="appearance-card-desc">{t[descKey] as string}</span>
                 </button>
               )
             })}
           </div>
-        </div>
-        <label className="offset-field">
-          {tCalendar.displayModeLabel}
-          <select
-            value={settings.calendarPnlDisplay ?? 'dollar'}
-            onChange={(e) =>
-              onSettingsChange({
-                ...settings,
-                calendarPnlDisplay: e.target.value as CalendarPnlDisplay,
-              })
-            }
+          <button
+            type="button"
+            className="btn-ghost-sm appearance-more-btn"
+            onClick={() => setShowMoreAppearances((v) => !v)}
           >
-            <option value="dollar">{tCalendar.displayDollar}</option>
-            <option value="percent">{tCalendar.displayPercent}</option>
-            <option value="both">{tCalendar.displayBoth}</option>
-          </select>
-        </label>
+            {showMoreAppearances ? t.appearanceLess : t.appearanceMore}
+          </button>
+        </div>
       </section>
 
-      <section className="panel settings-section">
+      <section className="panel settings-section settings-goals-section">
         <h3>{t.goalsTitle}</h3>
         <p className="hint-inline">{t.goalsHint}</p>
         <label className="check-row">
@@ -218,68 +231,69 @@ export function SettingsPanel({
           {t.autoCalcProfitGoals}
         </label>
         <p className="hint-inline">{t.autoCalcProfitGoalsHint}</p>
-        <div className="goals-grid goals-grid-3">
-          <label>
-            {t.dailyProfitGoal}
-            <input
-              type="number"
-              step="any"
-              value={settings.dailyProfitGoal ?? ''}
-              onChange={(e) => {
-                const raw = e.target.value
-                if (settings.autoCalcProfitGoals) {
-                  onSettingsChange({ ...settings, ...deriveProfitGoals('daily', raw) })
-                  return
-                }
-                onSettingsChange({
-                  ...settings,
-                  dailyProfitGoal: parseFloat(raw) || undefined,
-                })
-              }}
-            />
-          </label>
-          <label>
-            {t.weeklyProfitGoal}
-            <input
-              type="number"
-              step="any"
-              value={settings.weeklyProfitGoal ?? ''}
-              onChange={(e) => {
-                const raw = e.target.value
-                if (settings.autoCalcProfitGoals) {
-                  onSettingsChange({ ...settings, ...deriveProfitGoals('weekly', raw) })
-                  return
-                }
-                onSettingsChange({
-                  ...settings,
-                  weeklyProfitGoal: parseFloat(raw) || undefined,
-                })
-              }}
-            />
-          </label>
-          <label>
-            {t.monthlyProfitGoal}
-            <input
-              type="number"
-              step="any"
-              value={settings.monthlyProfitGoal ?? ''}
-              onChange={(e) => {
-                const raw = e.target.value
-                if (settings.autoCalcProfitGoals) {
-                  onSettingsChange({ ...settings, ...deriveProfitGoals('monthly', raw) })
-                  return
-                }
-                onSettingsChange({
-                  ...settings,
-                  monthlyProfitGoal: parseFloat(raw) || undefined,
-                })
-              }}
-            />
-          </label>
+        <div className="settings-goals-row">
+          <div className="goals-grid goals-grid-3 goals-grid-horizontal">
+            {(
+              [
+                {
+                  id: 'daily' as const,
+                  label: t.dailyProfitGoal,
+                  value: settings.dailyProfitGoal,
+                },
+                {
+                  id: 'weekly' as const,
+                  label: t.weeklyProfitGoal,
+                  value: settings.weeklyProfitGoal,
+                },
+                {
+                  id: 'monthly' as const,
+                  label: t.monthlyProfitGoal,
+                  value: settings.monthlyProfitGoal,
+                },
+              ] as const
+            ).map((field) => {
+              const live = profitGoals?.find((g) => g.id === field.id && g.status !== 'off')
+              return (
+                <label key={field.id} className="settings-goal-field">
+                  <span className="settings-goal-field-label">{field.label}</span>
+                  {live && tGoals && (
+                    <span className={`settings-goal-live ${pnlClass(live.current)}`}>
+                      {formatMoney(live.current)} / {formatMoney(live.goal)} · {live.pct.toFixed(1)}%
+                    </span>
+                  )}
+                  <input
+                    type="number"
+                    step="any"
+                    value={field.value ?? ''}
+                    onChange={(e) => {
+                      const raw = e.target.value
+                      if (settings.autoCalcProfitGoals) {
+                        onSettingsChange({ ...settings, ...deriveProfitGoals(field.id, raw) })
+                        return
+                      }
+                      const key =
+                        field.id === 'daily'
+                          ? 'dailyProfitGoal'
+                          : field.id === 'weekly'
+                            ? 'weeklyProfitGoal'
+                            : 'monthlyProfitGoal'
+                      onSettingsChange({
+                        ...settings,
+                        [key]: parseFloat(raw) || undefined,
+                      })
+                    }}
+                  />
+                </label>
+              )
+            })}
+          </div>
+          {monthlyGoal && tGoals && (
+            <MonthlyGoalGauge goal={monthlyGoal} label={tGoals.gaugeMonthly} />
+          )}
         </div>
       </section>
 
-      <section className="panel settings-section">
+      <section className="panel settings-section settings-risk-section">
         <h3>{t.thresholdsTitle}</h3>
         <p className="hint-inline">{t.thresholdsHint}</p>
         <label className="check-row settings-master-toggle">
@@ -359,6 +373,7 @@ export function SettingsPanel({
                     })
                   }
                 />
+                <span className="hint-inline">{t.maxDrawdownPctHint}</span>
               </label>
             </div>
             <label className="check-row">
@@ -391,6 +406,11 @@ export function SettingsPanel({
             <p className="hint-inline">{t.autoCloseOnDayRuleHint}</p>
           </div>
         )}
+        {settings.tradingRulesEnabled && thresholdRules && tThresholds ? (
+          <div className="settings-live-preview">
+            <RiskRulesSummary rules={thresholdRules} t={tThresholds} />
+          </div>
+        ) : null}
       </section>
 
       <section className="panel settings-section">

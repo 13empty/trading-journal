@@ -83,7 +83,7 @@ export function DayHero({
       {!chartVisible ? null : (
         <div className="day-hero-chart">
           <h4 className="day-hero-chart-title">{t.equity}</h4>
-          <EquityCurve points={equityPoints} />
+          <EquityCurve points={equityPoints} stretch={chartVisible} />
         </div>
       )}
 

@@ -17,10 +17,20 @@ import type { TrackingGoals } from './journal'
 export type CalendarPnlDisplay = 'dollar' | 'percent' | 'both'
 
 /**
- * Full UI appearance packs (palette + mood).
+ * Full UI appearance packs (palette + mood + typography).
  * Replaces separate dark/light + accent picker.
  */
-export type AppearanceId = 'midnight' | 'graphite' | 'cyber' | 'crimson' | 'slate' | 'light'
+export type AppearanceId =
+  | 'midnight'
+  | 'graphite'
+  | 'cyber'
+  | 'crimson'
+  | 'ember'
+  | 'aurora'
+  | 'terminal'
+  | 'slate'
+  | 'light'
+  | 'ivory'
 
 /** @deprecated use AppearanceId — kept for migrating stored settings */
 export type UiMode = 'dark' | 'light'

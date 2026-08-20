@@ -6,7 +6,9 @@ import type { AppLanguage } from '../i18n/types'
 
 const TRADES_KEY = 'trading-journal-trades'
 const CASH_KEY = 'trading-journal-cash'
-const SETTINGS_KEY = 'trading-journal-settings'
+export const SETTINGS_STORAGE_KEY = 'trading-journal-settings'
+const SETTINGS_KEY = SETTINGS_STORAGE_KEY
+const SETTINGS_BROADCAST = 'tj-settings'
 
 const defaultSettings = (): AppSettings => ({ initialBalance: 0, language: 'es' as AppLanguage })
 
@@ -67,8 +69,51 @@ export function loadSettings(): AppSettings {
 export function saveSettings(settings: AppSettings): void {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
+    try {
+      const bc = new BroadcastChannel(SETTINGS_BROADCAST)
+      bc.postMessage({ type: 'settings', settings })
+      bc.close()
+    } catch {
+      /* BroadcastChannel unavailable */
+    }
   } catch {
     console.warn('localStorage lleno: ajustes no guardados')
+  }
+}
+
+/** Sync settings across Electron windows / browser tabs. */
+export function subscribeSettings(onChange: (settings: AppSettings) => void): () => void {
+  const applyRaw = (raw: string | null) => {
+    if (!raw) return
+    try {
+      onChange({ ...defaultSettings(), ...(JSON.parse(raw) as AppSettings) })
+    } catch {
+      /* ignore bad payload */
+    }
+  }
+
+  const onStorage = (e: StorageEvent) => {
+    if (e.key !== SETTINGS_KEY) return
+    applyRaw(e.newValue)
+  }
+
+  let bc: BroadcastChannel | null = null
+  try {
+    bc = new BroadcastChannel(SETTINGS_BROADCAST)
+    bc.onmessage = (ev) => {
+      const data = ev.data as { type?: string; settings?: AppSettings } | null
+      if (data?.type === 'settings' && data.settings) {
+        onChange({ ...defaultSettings(), ...data.settings })
+      }
+    }
+  } catch {
+    bc = null
+  }
+
+  window.addEventListener('storage', onStorage)
+  return () => {
+    window.removeEventListener('storage', onStorage)
+    bc?.close()
   }
 }
 
