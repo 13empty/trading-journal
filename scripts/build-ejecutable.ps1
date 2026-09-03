@@ -10,7 +10,7 @@ function Stop-BlockingAppProcesses {
     $name = $proc.ProcessName
     $shouldStop = $false
 
-    if ($name -eq 'Trading-Journal') {
+    if ($name -eq 'Trading-Journal' -or $name -eq 'Trading Journal') {
       $shouldStop = $true
     } elseif ($name -eq 'electron') {
       try {

@@ -244,6 +244,15 @@ export interface Translations {
     fallbackNoWinDays: string
     fallbackNoLossDays: string
     fallbackNoDays: string
+    calendarTitle: string
+    calendarSubtitle: string
+    calendarUseMonth: string
+    calendarUseAll: string
+    calendarProjected: string
+    calendarMonthEnd: string
+    calendarLegendPast: string
+    calendarLegendFuture: string
+    calendarHorizon: string
   }
   journal: {
     dailyNotes: string

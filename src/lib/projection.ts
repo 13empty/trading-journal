@@ -1,5 +1,6 @@
-import { format, startOfMonth } from 'date-fns'
+import { addMonths, differenceInCalendarDays, format, getISODay, startOfMonth } from 'date-fns'
 import type { DayActivity } from '../types/account'
+import { monthGridDays } from './account'
 import { parseLocalDateKey } from './mt5Date'
 
 export type StreakKind = 'win' | 'loss' | 'flat'
@@ -181,4 +182,139 @@ export function projectionCurvePoints(
     points.push({ day: d, balance: startBalance + dailyRate * d })
   }
   return points
+}
+
+export type ProjectionCalKind = 'pad' | 'past' | 'today' | 'future'
+
+export interface ProjectionCalCell {
+  date: string | null
+  dayNum: number | null
+  kind: ProjectionCalKind
+  dayPnl: number | null
+  daysFromAsOf: number | null
+  projectedPnl: number | null
+  projectedBalance: number | null
+  horizon?: number
+}
+
+export interface ProjectionMonthCal {
+  monthKey: string
+  weeks: ProjectionCalCell[][]
+  futureDays: number
+  monthProjectedPnl: number
+  monthEndBalance: number
+}
+
+const HORIZON_SET = new Set<number>(PROJECTION_HORIZONS)
+
+function emptyPad(): ProjectionCalCell {
+  return {
+    date: null,
+    dayNum: null,
+    kind: 'pad',
+    dayPnl: null,
+    daysFromAsOf: null,
+    projectedPnl: null,
+    projectedBalance: null,
+  }
+}
+
+function cellForDate(
+  date: Date,
+  asOfDate: string,
+  startBalance: number,
+  dailyRate: number,
+  byDate: Map<string, DayActivity>,
+): ProjectionCalCell {
+  const key = format(date, 'yyyy-MM-dd')
+  const daysFromAsOf = differenceInCalendarDays(date, parseLocalDateKey(asOfDate))
+  const actual = byDate.get(key)
+  const horizon = HORIZON_SET.has(daysFromAsOf) ? daysFromAsOf : undefined
+
+  if (daysFromAsOf < 0) {
+    return {
+      date: key,
+      dayNum: date.getDate(),
+      kind: 'past',
+      dayPnl: actual ? actual.pnl : null,
+      daysFromAsOf,
+      projectedPnl: null,
+      projectedBalance: actual?.endBalance ?? null,
+      horizon,
+    }
+  }
+
+  if (daysFromAsOf === 0) {
+    return {
+      date: key,
+      dayNum: date.getDate(),
+      kind: 'today',
+      dayPnl: actual ? actual.pnl : 0,
+      daysFromAsOf: 0,
+      projectedPnl: 0,
+      projectedBalance: startBalance,
+      horizon,
+    }
+  }
+
+  const projectedPnl = dailyRate * daysFromAsOf
+  return {
+    date: key,
+    dayNum: date.getDate(),
+    kind: 'future',
+    dayPnl: dailyRate,
+    daysFromAsOf,
+    projectedPnl,
+    projectedBalance: startBalance + projectedPnl,
+    horizon,
+  }
+}
+
+function weeksForMonth(
+  month: Date,
+  asOfDate: string,
+  startBalance: number,
+  dailyRate: number,
+  byDate: Map<string, DayActivity>,
+): ProjectionCalCell[][] {
+  const days = monthGridDays(month)
+  const padStart = getISODay(days[0]) - 1
+  const cells: ProjectionCalCell[] = [
+    ...Array.from({ length: padStart }, () => emptyPad()),
+    ...days.map((d) => cellForDate(d, asOfDate, startBalance, dailyRate, byDate)),
+  ]
+  while (cells.length % 7 !== 0) cells.push(emptyPad())
+
+  const weeks: ProjectionCalCell[][] = []
+  for (let i = 0; i < cells.length; i += 7) {
+    weeks.push(cells.slice(i, i + 7))
+  }
+  return weeks.filter((week) => week.some((c) => c.kind !== 'pad'))
+}
+
+/** Current month + next two, mixing actuals (past) with streak-rate projection (future). */
+export function buildThreeMonthProjectionCalendar(
+  asOfDate: string,
+  startBalance: number,
+  dailyRate: number,
+  activities: DayActivity[],
+): ProjectionMonthCal[] {
+  const byDate = new Map(activities.map((d) => [d.date, d]))
+  const origin = startOfMonth(parseLocalDateKey(asOfDate))
+
+  return [0, 1, 2].map((offset) => {
+    const month = addMonths(origin, offset)
+    const weeks = weeksForMonth(month, asOfDate, startBalance, dailyRate, byDate)
+    const flat = weeks.flat().filter((c) => c.kind !== 'pad')
+    const future = flat.filter((c) => c.kind === 'future')
+    const last = [...flat].reverse().find((c) => c.projectedBalance != null)
+
+    return {
+      monthKey: format(month, 'yyyy-MM'),
+      weeks,
+      futureDays: future.length,
+      monthProjectedPnl: future.reduce((s, c) => s + (c.dayPnl ?? 0), 0),
+      monthEndBalance: last?.projectedBalance ?? startBalance,
+    }
+  })
 }

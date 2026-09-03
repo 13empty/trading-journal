@@ -1,13 +1,18 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { Locale } from 'date-fns'
 import type { DayActivity } from '../types/account'
 import type { Translations } from '../i18n/types'
 import { formatMoney, formatBalance, pnlClass } from '../lib/aggregations'
+import { weekdayHeaders } from '../lib/calendarLocale'
+import { formatCompactPnl } from '../lib/calendarPnl'
 import { formatMonthKey } from '../lib/dateDisplay'
 import {
+  buildThreeMonthProjectionCalendar,
   computeProgressProjection,
   projectionCurvePoints,
   PROJECTION_HORIZONS,
+  type ProjectionCalCell,
+  type ProjectionMonthCal,
   type StreakKind,
 } from '../lib/projection'
 
@@ -98,6 +103,149 @@ function ScopeTable({
           ))}
         </tbody>
       </table>
+    </section>
+  )
+}
+
+function cellClass(cell: ProjectionCalCell): string {
+  const parts = ['proj-cal-cell', cell.kind]
+  if (cell.kind === 'future' && cell.projectedPnl != null && cell.projectedPnl !== 0) {
+    parts.push(cell.projectedPnl > 0 ? 'positive' : 'negative')
+  }
+  if ((cell.kind === 'past' || cell.kind === 'today') && cell.dayPnl != null && cell.dayPnl !== 0) {
+    parts.push(cell.dayPnl > 0 ? 'positive' : 'negative')
+  }
+  if (cell.horizon) parts.push('horizon')
+  return parts.join(' ')
+}
+
+function ProjectionMonthGrid({
+  month,
+  weekdays,
+  dateLocale,
+  t,
+}: {
+  month: ProjectionMonthCal
+  weekdays: string[]
+  dateLocale: Locale
+  t: Translations['projection']
+}) {
+  return (
+    <div className="proj-cal-month">
+      <div className="proj-cal-month-head">
+        <h4>{formatMonthKey(month.monthKey, dateLocale)}</h4>
+        <div className="proj-cal-month-meta">
+          <span>
+            {t.calendarProjected}:{' '}
+            <strong className={pnlClass(month.monthProjectedPnl)}>
+              {formatMoney(month.monthProjectedPnl)}
+            </strong>
+          </span>
+          <span>
+            {t.calendarMonthEnd}: <strong>{formatBalance(month.monthEndBalance)}</strong>
+          </span>
+        </div>
+      </div>
+      <div className="proj-cal-grid">
+        {weekdays.map((d) => (
+          <div key={d} className="proj-cal-dow">
+            {d}
+          </div>
+        ))}
+        {month.weeks.flat().map((cell, i) => (
+          <div
+            key={cell.date ?? `pad-${month.monthKey}-${i}`}
+            className={cellClass(cell)}
+            title={
+              cell.kind === 'future' && cell.projectedBalance != null
+                ? `${formatMoney(cell.projectedPnl ?? 0)} · ${formatBalance(cell.projectedBalance)}`
+                : undefined
+            }
+          >
+            {cell.kind !== 'pad' && (
+              <>
+                <span className="proj-cal-num">{cell.dayNum}</span>
+                {cell.horizon != null && (
+                  <span className="proj-cal-badge">{t.calendarHorizon.replace('{n}', String(cell.horizon))}</span>
+                )}
+                {cell.kind === 'future' && cell.projectedPnl != null ? (
+                  <span className={`proj-cal-pnl ${pnlClass(cell.projectedPnl)}`}>
+                    {formatCompactPnl(cell.projectedPnl)}
+                  </span>
+                ) : cell.dayPnl != null && cell.dayPnl !== 0 ? (
+                  <span className={`proj-cal-pnl ${pnlClass(cell.dayPnl)}`}>{formatCompactPnl(cell.dayPnl)}</span>
+                ) : null}
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ThreeMonthCalendar({
+  activities,
+  startBalance,
+  asOfDate,
+  monthRate,
+  allRate,
+  dateLocale,
+  t,
+}: {
+  activities: DayActivity[]
+  startBalance: number
+  asOfDate: string
+  monthRate: number
+  allRate: number
+  dateLocale: Locale
+  t: Translations['projection']
+}) {
+  const [source, setSource] = useState<'all' | 'month'>('all')
+  const dailyRate = source === 'month' ? monthRate : allRate
+  const months = useMemo(
+    () => buildThreeMonthProjectionCalendar(asOfDate, startBalance, dailyRate, activities),
+    [asOfDate, startBalance, dailyRate, activities],
+  )
+  const weekdays = useMemo(() => weekdayHeaders(dateLocale), [dateLocale])
+
+  return (
+    <section className="panel projection-calendar">
+      <div className="panel-head">
+        <h3>{t.calendarTitle}</h3>
+        <div className="calendar-mode-toggle proj-cal-toggle" role="group">
+          <button
+            type="button"
+            className={source === 'all' ? 'active' : ''}
+            onClick={() => setSource('all')}
+          >
+            {t.calendarUseAll}
+          </button>
+          <button
+            type="button"
+            className={source === 'month' ? 'active' : ''}
+            onClick={() => setSource('month')}
+          >
+            {t.calendarUseMonth}
+          </button>
+        </div>
+      </div>
+      <p className="projection-note">{t.calendarSubtitle}</p>
+      <div className="proj-cal-legend">
+        <span className="leg past">{t.calendarLegendPast}</span>
+        <span className="leg future">{t.calendarLegendFuture}</span>
+      </div>
+      <div className="proj-cal-months">
+        {months.map((m) => (
+          <ProjectionMonthGrid
+            key={m.monthKey}
+            month={m}
+            weekdays={weekdays}
+            dateLocale={dateLocale}
+            t={t}
+          />
+        ))}
+      </div>
     </section>
   )
 }
@@ -198,6 +346,16 @@ export function ProjectionPanel({ activities, startBalance, asOfDate, dateLocale
         />
         <ScopeTable scope={{ ...all, label: t.scopeAll }} streakKind={streak.kind} t={t} />
       </div>
+
+      <ThreeMonthCalendar
+        activities={activities}
+        startBalance={startBalance}
+        asOfDate={asOfDate}
+        monthRate={month.dailyRate}
+        allRate={all.dailyRate}
+        dateLocale={dateLocale}
+        t={t}
+      />
     </div>
   )
 }

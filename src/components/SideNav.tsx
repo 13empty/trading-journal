@@ -91,6 +91,7 @@ const TABS: { id: MainTab; labelKey: keyof Translations['nav'] }[] = [
   { id: 'calendar', labelKey: 'calendar' },
   { id: 'day', labelKey: 'day' },
   { id: 'analytics', labelKey: 'analytics' },
+  { id: 'projection', labelKey: 'projection' },
   { id: 'sync', labelKey: 'sync' },
   { id: 'settings', labelKey: 'settings' },
 ]

@@ -1604,12 +1604,31 @@ overflow:hidden;
 border:none}
 .cal-cell:hover:not(.selected){
 border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
+.cal-cell.has-data.positive:hover:not(.selected){
+border-color:color-mix(in srgb,var(--green) 72%,var(--border))}
+.cal-cell.has-data.negative:hover:not(.selected){
+border-color:color-mix(in srgb,var(--red) 72%,var(--border))}
 .cal-cell.today{
 outline:2px dashed color-mix(in srgb,var(--accent) 55%,transparent);
 outline-offset:-2px}
+.cal-cell.today.has-data.positive,
+.cal-cell.today.has-data.negative,
+.cal-cell.today.selected,
+.cal-cell.has-live.has-data.positive,
+.cal-cell.has-live.has-data.negative,
+.cal-cell.has-live.selected{
+outline:none}
 .cal-cell.today .cal-day-num{
 color:var(--accent);
 font-weight:700}
+.cal-cell.today.has-data.positive .cal-day-num,
+.cal-cell.has-data.positive.selected .cal-day-num{
+color:color-mix(in srgb,var(--green) 72%,var(--text));
+font-weight:800}
+.cal-cell.today.has-data.negative .cal-day-num,
+.cal-cell.has-data.negative.selected .cal-day-num{
+color:color-mix(in srgb,var(--red) 72%,var(--text));
+font-weight:800}
 .cal-cell.selected{
 border-color:var(--accent);
 background:var(--accent-dim);
@@ -1625,14 +1644,15 @@ border-color:color-mix(in srgb,var(--red) 55%,var(--border));
 box-shadow:0 0 12px color-mix(in srgb,var(--red) 32%,transparent),inset 0 1px 0 color-mix(in srgb,var(--red) 22%,transparent)}
 .cal-cell.has-data.positive.selected{
 background:linear-gradient(180deg,color-mix(in srgb,var(--green) 18%,var(--bg)) 0%,var(--bg) 100%);
-border-color:color-mix(in srgb,var(--green) 70%,var(--accent));
-box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent),0 0 14px color-mix(in srgb,var(--green) 38%,transparent)}
+border-color:color-mix(in srgb,var(--green) 78%,var(--border));
+box-shadow:0 0 0 2px color-mix(in srgb,var(--green) 40%,transparent),0 0 14px color-mix(in srgb,var(--green) 38%,transparent),inset 0 1px 0 color-mix(in srgb,var(--green) 22%,transparent)}
 .cal-cell.has-data.negative.selected{
 background:linear-gradient(180deg,color-mix(in srgb,var(--red) 18%,var(--bg)) 0%,var(--bg) 100%);
-border-color:color-mix(in srgb,var(--red) 70%,var(--accent));
-box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent),0 0 14px color-mix(in srgb,var(--red) 38%,transparent)}
-.cal-cell.has-live{
-outline:1px dashed color-mix(in srgb, var(--accent) 55%, transparent)}
+border-color:color-mix(in srgb,var(--red) 78%,var(--border));
+box-shadow:0 0 0 2px color-mix(in srgb,var(--red) 40%,transparent),0 0 14px color-mix(in srgb,var(--red) 38%,transparent),inset 0 1px 0 color-mix(in srgb,var(--red) 22%,transparent)}
+.cal-cell.has-live:not(.selected):not(.has-data){
+outline:1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+outline-offset:-2px}
 .cal-pnl.neutral{
 font-weight:500;
 opacity:.75}
@@ -1677,6 +1697,12 @@ color:color-mix(in srgb,var(--text) 70%,var(--muted))}
 .cal-cell.today .cal-day-num{
 color:var(--accent);
 font-weight:800}
+.cal-cell.today.has-data.positive .cal-day-num,
+.cal-cell.has-data.positive.selected .cal-day-num{
+color:color-mix(in srgb,var(--green) 72%,var(--text))}
+.cal-cell.today.has-data.negative .cal-day-num,
+.cal-cell.has-data.negative.selected .cal-day-num{
+color:color-mix(in srgb,var(--red) 72%,var(--text))}
 .cal-pnl{
 text-align:center;
 white-space:nowrap;
@@ -2972,9 +2998,27 @@ box-shadow:0 0 12px #39ff1455,0 0 24px #39ff1428,inset 0 1px 0 #39ff1444}
 border-color:#ff2d6a;
 background:linear-gradient(180deg,#1a060a 0%,#0a0406 100%);
 box-shadow:0 0 12px #ff2d6a55,0 0 24px #ff2d6a28,inset 0 1px 0 #ff2d6a44}
+[data-theme=cyber] .cal-cell.has-data.positive.selected{
+border-color:#39ff14;
+background:linear-gradient(180deg,#0a1a0c 0%,#050805 100%);
+box-shadow:0 0 0 2px #39ff1466,0 0 16px #39ff1455,0 0 28px #39ff1428,inset 0 1px 0 #39ff1444}
+[data-theme=cyber] .cal-cell.has-data.negative.selected{
+border-color:#ff2d6a;
+background:linear-gradient(180deg,#1a060a 0%,#0a0406 100%);
+box-shadow:0 0 0 2px #ff2d6a66,0 0 16px #ff2d6a55,0 0 28px #ff2d6a28,inset 0 1px 0 #ff2d6a44}
 [data-theme=cyber] .cal-cell.today .cal-day-num{
 text-shadow:0 0 8px #00e5ff55;
 color:color-mix(in srgb,var(--accent) 75%,var(--text));
+font-family:var(--font-display)}
+[data-theme=cyber] .cal-cell.today.has-data.positive .cal-day-num,
+[data-theme=cyber] .cal-cell.has-data.positive.selected .cal-day-num{
+color:#39ff14;
+text-shadow:0 0 8px #39ff1455;
+font-family:var(--font-display)}
+[data-theme=cyber] .cal-cell.today.has-data.negative .cal-day-num,
+[data-theme=cyber] .cal-cell.has-data.negative.selected .cal-day-num{
+color:#ff2d6a;
+text-shadow:0 0 8px #ff2d6a55;
 font-family:var(--font-display)}
 [data-theme=cyber] .cal-pnl.positive,
 [data-theme=cyber] .cal-cell.has-data.positive .cal-pnl{
@@ -3008,7 +3052,7 @@ text-shadow:0 0 24px color-mix(in srgb,var(--green) 55%,transparent),0 0 48px co
 color:var(--red);
 text-shadow:0 0 24px color-mix(in srgb,var(--red) 55%,transparent),0 0 48px color-mix(in srgb,var(--red) 25%,transparent)}
 
-/* Sangre — misma tipografía futurista que Cyber (Cascadia + Orbitron), glow rojo */
+/* Sangre — carbón zinc + rojo eléctrico (Cascadia + Orbitron) */
 html[data-theme=crimson],
 html[data-theme=crimson] body,
 html[data-theme=crimson] #root,
@@ -3040,83 +3084,123 @@ font-family:inherit}
 font-family:var(--font-display) !important}
 [data-theme=crimson] .app-shell{
 background:
-radial-gradient(1100px 480px at 10% -10%,#c4122e18,transparent 55%),
-radial-gradient(800px 400px at 100% 0%,#7f0a1812,transparent 50%),
+radial-gradient(900px 380px at 8% -8%,#ff375f18,transparent 55%),
 var(--bg)}
-[data-theme=crimson] .panel,
 [data-theme=crimson] .sidebar,
+[data-theme=crimson] .sidebar-footer{
+background:#0a0a0c;
+border-color:var(--border)}
+[data-theme=crimson] .panel,
 [data-theme=crimson] .day-hero,
-[data-theme=crimson] .stat-card{
-border-color:color-mix(in srgb,var(--accent) 28%,var(--border));
-box-shadow:var(--shadow-sm)}
+[data-theme=crimson] .stat-card,
+[data-theme=crimson] .modal,
+[data-theme=crimson] .kpi-card.hero-kpi,
+[data-theme=crimson] .account-stats-bar-under-cal,
+[data-theme=crimson] .account-stats-bar-compact,
+[data-theme=crimson] .calendar-mode-toggle,
+[data-theme=crimson] .calendar-nav-btn,
+[data-theme=crimson] .appearance-card{
+border:1px solid var(--border);
+box-shadow:none}
+[data-theme=crimson] .kpi-card.hero-kpi,
+[data-theme=crimson] .app-shell-home .home-right-panel .kpi-card.hero-kpi{
+background:var(--surface-elevated);
+border:1px solid var(--border)}
+[data-theme=crimson] .account-stats-bar-under-cal,
+[data-theme=crimson] .account-stats-bar-compact{
+border-color:color-mix(in srgb,var(--accent) 40%,var(--border));
+background:var(--surface)}
+[data-theme=crimson] .account-stats-bar-under-cal .account-stat{
+border-right-color:var(--border)}
+[data-theme=crimson] .cal-cell{
+border:1px solid var(--border);
+background:var(--surface-elevated)}
+[data-theme=crimson] td.cal-pad.leading .cal-cell,
+[data-theme=crimson] td.cal-pad.trailing .cal-cell{
+border-color:color-mix(in srgb,var(--border) 45%,transparent);
+background:color-mix(in srgb,var(--surface-elevated) 55%,var(--bg))}
 [data-theme=crimson] .sidebar-brand h1,
 [data-theme=crimson] .nav-rail-btn.active,
 [data-theme=crimson] .main-tabs button.active,
 [data-theme=crimson] .logo{
 letter-spacing:.08em;
 text-transform:uppercase;
-font-weight:700;
-text-shadow:0 0 14px color-mix(in srgb,var(--accent) 45%,transparent)}
+font-weight:700}
 [data-theme=crimson] .logo{
-background:linear-gradient(135deg,#c4122e33,#1a0508aa);
-border:1px solid color-mix(in srgb,var(--accent) 40%,var(--border));
-color:#ececec}
+background:linear-gradient(135deg,#ff375f28,#1c1c22);
+border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));
+color:var(--text)}
 [data-theme=crimson] .nav-rail-btn.active,
 [data-theme=crimson] .main-tabs button.active{
-box-shadow:inset 0 -2px 0 var(--accent),0 0 18px #c4122e22;
-color:#f0f0f0}
+box-shadow:inset 0 -2px 0 var(--accent),0 0 16px #ff375f28;
+color:var(--text)}
 [data-theme=crimson] .btn-primary{
-background:linear-gradient(180deg,#d41832,#9a0e22);
-border-color:#c4122e66;
-box-shadow:0 0 18px #c4122e22;
+background:linear-gradient(180deg,#ff4d6d,#d0123a);
+border-color:#ff375f66;
+box-shadow:0 0 16px #ff375f30;
 letter-spacing:.06em;
 font-family:var(--font-display) !important;
 text-transform:uppercase;
 font-weight:600}
 [data-theme=crimson] .btn-primary:hover{
 filter:brightness(1.08);
-box-shadow:0 0 24px #c4122e33}
+box-shadow:0 0 22px #ff375f44}
 [data-theme=crimson] .appearance-card.active{
-box-shadow:0 0 0 2px var(--accent-dim),0 0 18px #c4122e22}
+box-shadow:0 0 0 2px var(--accent-dim),0 0 16px #ff375f22}
 
-/* Glow calendario like day PnL card (Sangre) */
 [data-theme=crimson] .calendar{
-box-shadow:0 0 20px #c4122e14}
+box-shadow:0 0 16px #ff375f10}
 [data-theme=crimson] .cal-cell.selected{
-box-shadow:0 0 14px #c4122e35,inset 0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent);
-border-color:color-mix(in srgb,var(--accent) 50%,var(--border))}
+box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 70%,transparent);
+border-color:var(--accent)}
 [data-theme=crimson] .cal-cell.has-data.positive{
 border-color:#39ff14;
-background:linear-gradient(180deg,#0a1a0c 0%,#050805 100%);
-box-shadow:0 0 12px #39ff1455,0 0 24px #39ff1428,inset 0 1px 0 #39ff1444}
+background:linear-gradient(180deg,#1a2a1c 0%,#2a2a32 100%);
+box-shadow:0 0 10px #39ff1433,inset 0 1px 0 #39ff1444}
 [data-theme=crimson] .cal-cell.has-data.negative{
-border-color:#ff2d55;
-background:linear-gradient(180deg,#1a060a 0%,#0a0406 100%);
-box-shadow:0 0 12px #ff2d5555,0 0 24px #c4122e28,inset 0 1px 0 #ff2d5544}
+border-color:#ff375f;
+background:linear-gradient(180deg,#26161c 0%,#2a2a32 100%);
+box-shadow:0 0 10px #ff375f28,inset 0 1px 0 #ff375f33}
+[data-theme=crimson] .cal-cell.has-data.positive.selected{
+border-color:#39ff14;
+background:linear-gradient(180deg,#1a2a1c 0%,#2a2a32 100%);
+box-shadow:0 0 0 2px #39ff1466,0 0 14px #39ff1444,inset 0 1px 0 #39ff1444}
+[data-theme=crimson] .cal-cell.has-data.negative.selected{
+border-color:#ff375f;
+background:linear-gradient(180deg,#26161c 0%,#2a2a32 100%);
+box-shadow:0 0 0 2px #ff375f66,0 0 14px #ff375f44,inset 0 1px 0 #ff375f33}
 [data-theme=crimson] .cal-cell.today .cal-day-num{
-text-shadow:0 0 8px #c4122e55;
-color:color-mix(in srgb,var(--accent) 75%,var(--text));
+color:var(--accent);
+font-family:var(--font-display)}
+[data-theme=crimson] .cal-cell.today.has-data.positive .cal-day-num,
+[data-theme=crimson] .cal-cell.has-data.positive.selected .cal-day-num{
+color:#39ff14;
+text-shadow:0 0 8px #39ff1455;
+font-family:var(--font-display)}
+[data-theme=crimson] .cal-cell.today.has-data.negative .cal-day-num,
+[data-theme=crimson] .cal-cell.has-data.negative.selected .cal-day-num{
+color:#ff375f;
+text-shadow:0 0 8px #ff375f55;
 font-family:var(--font-display)}
 [data-theme=crimson] .cal-pnl.positive,
 [data-theme=crimson] .cal-cell.has-data.positive .cal-pnl{
 color:#39ff14;
-text-shadow:0 0 10px #39ff14aa,0 0 22px #39ff1466}
+text-shadow:0 0 8px #39ff1488}
 [data-theme=crimson] .cal-pnl.negative,
 [data-theme=crimson] .cal-cell.has-data.negative .cal-pnl{
-color:#ff2d55;
-text-shadow:0 0 10px #ff2d55aa,0 0 22px #c4122e66}
-/* Marcador PnL del día — mismo punch neón que Cyber */
+color:#ff375f;
+text-shadow:0 0 8px #ff375f88}
 [data-theme=crimson] .day-hero-pnl{
-border:1px solid #c4122e88;
-box-shadow:0 0 28px #c4122e33,0 0 56px #c4122e14}
+border:1px solid var(--border);
+box-shadow:0 0 18px #ff375f18}
 [data-theme=crimson] .day-hero-pnl.positive{
 border-color:#39ff14;
-background:linear-gradient(180deg,#0a1a0c 0%,#050805 55%,#030303 100%);
-box-shadow:0 0 18px #39ff1466,0 0 42px #39ff1433,0 0 80px #39ff1418,inset 0 1px 0 #39ff1444}
+background:linear-gradient(180deg,#1a2a1c 0%,var(--surface) 70%);
+box-shadow:0 0 18px #39ff1444,inset 0 1px 0 #39ff1444}
 [data-theme=crimson] .day-hero-pnl.negative{
-border-color:#ff2d55;
-background:linear-gradient(180deg,#1a060a 0%,#0a0406 55%,#030303 100%);
-box-shadow:0 0 18px #ff2d5566,0 0 42px #c4122e44,0 0 80px #c4122e1a,inset 0 1px 0 #ff2d5544}
+border-color:#ff375f;
+background:linear-gradient(180deg,#26161c 0%,var(--surface) 70%);
+box-shadow:0 0 18px #ff375f44,inset 0 1px 0 #ff375f33}
 [data-theme=crimson] .day-hero-pnl-label{
 letter-spacing:.14em;
 font-size:.7rem}
@@ -3124,18 +3208,18 @@ font-size:.7rem}
 color:#39ff14cc;
 text-shadow:0 0 10px #39ff1466}
 [data-theme=crimson] .day-hero-pnl.negative .day-hero-pnl-label{
-color:#ff2d55cc;
-text-shadow:0 0 10px #ff2d5566}
+color:#ff375fcc;
+text-shadow:0 0 10px #ff375f66}
 [data-theme=crimson] .day-hero-pnl-amount{
 letter-spacing:.04em;
 font-size:2.35rem;
 font-weight:700}
 [data-theme=crimson] .day-hero-pnl.positive .day-hero-pnl-amount{
 color:#39ff14;
-text-shadow:0 0 12px #39ff14aa,0 0 28px #39ff1488,0 0 56px #39ff1444,0 0 90px #39ff1422}
+text-shadow:0 0 12px #39ff14aa,0 0 28px #39ff1466}
 [data-theme=crimson] .day-hero-pnl.negative .day-hero-pnl-amount{
-color:#ff2d55;
-text-shadow:0 0 12px #ff2d55aa,0 0 28px #c4122e88,0 0 56px #c4122e44,0 0 90px #c4122e22}
+color:#ff375f;
+text-shadow:0 0 12px #ff375faa,0 0 28px #ff375f66}
 
 [data-theme=ember]{font-family:var(--font)}
 [data-theme=ember] .sidebar-brand h1,
@@ -3439,4 +3523,32 @@ height:112px}
 .projection-legend .leg::before{content:'';display:inline-block;width:.65rem;height:.12rem;margin-right:.35rem;vertical-align:middle}
 .projection-legend .leg.month::before{background:var(--accent)}
 .projection-legend .leg.all::before{background:var(--muted)}
+.projection-calendar .panel-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.45rem}
+.proj-cal-toggle{margin:0}
+.proj-cal-legend{display:flex;gap:1rem;margin:0 0 .65rem;font-size:.75rem;color:var(--muted)}
+.proj-cal-legend .leg::before{content:'';display:inline-block;width:.55rem;height:.55rem;margin-right:.35rem;border-radius:3px;vertical-align:middle}
+.proj-cal-legend .leg.past::before{background:var(--surface-elevated);border:1px solid var(--border)}
+.proj-cal-legend .leg.future::before{background:color-mix(in srgb,var(--accent) 18%,var(--surface-elevated));border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border))}
+.proj-cal-months{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}
+.proj-cal-month{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:.65rem .7rem .75rem}
+.proj-cal-month-head{margin-bottom:.45rem}
+.proj-cal-month-head h4{margin:0 0 .2rem;font-size:.88rem;text-transform:capitalize}
+.proj-cal-month-meta{display:flex;flex-direction:column;gap:.1rem;font-size:.7rem;color:var(--muted)}
+.proj-cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.proj-cal-dow{font-size:.58rem;color:var(--muted);text-align:center;letter-spacing:.04em;padding:.15rem 0}
+.proj-cal-cell{min-height:52px;border-radius:7px;padding:3px 4px 4px;border:1px solid var(--border);background:var(--surface-elevated);display:flex;flex-direction:column;gap:1px;overflow:hidden}
+.proj-cal-cell.pad{border-color:transparent;background:transparent}
+.proj-cal-cell.past{opacity:.78}
+.proj-cal-cell.today{border-color:var(--accent);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent)}
+.proj-cal-cell.future{border-color:color-mix(in srgb,var(--accent) 32%,var(--border))}
+.proj-cal-cell.future.positive{border-color:color-mix(in srgb,var(--green) 45%,var(--border));background:linear-gradient(180deg,color-mix(in srgb,var(--green) 12%,var(--surface-elevated)),var(--surface-elevated))}
+.proj-cal-cell.future.negative{border-color:color-mix(in srgb,var(--red) 45%,var(--border));background:linear-gradient(180deg,color-mix(in srgb,var(--red) 12%,var(--surface-elevated)),var(--surface-elevated))}
+.proj-cal-cell.horizon{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 55%,transparent)}
+.proj-cal-num{font-size:.62rem;color:var(--muted);line-height:1.2}
+.proj-cal-cell.today .proj-cal-num{color:var(--accent);font-weight:700}
+.proj-cal-badge{font-size:.52rem;font-weight:700;letter-spacing:.02em;color:var(--accent);line-height:1.1}
+.proj-cal-pnl{font-size:.62rem;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+@media(max-width:1100px){
+.proj-cal-months{grid-template-columns:1fr}
+}
 
