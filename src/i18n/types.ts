@@ -693,6 +693,23 @@ export interface Translations {
     title: string
     subtitle: string
   }
+  exchanges: {
+    title: string
+    subtitle: string
+    readOnlyHint: string
+    apiKey: string
+    apiSecret: string
+    passphrase: string
+    connect: string
+    saving: string
+    saveOk: string
+    saveFail: string
+    sync: string
+    syncAll: string
+    syncing: string
+    test: string
+    remove: string
+  }
   riskAdvice: {
     title: string
     subtitle: string

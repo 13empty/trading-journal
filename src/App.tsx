@@ -12,6 +12,7 @@ import { DayStatusChips } from './components/DayStatusChips'
 import { SideNav, type MainTab } from './components/SideNav'
 import { AccountStatsBar } from './components/AccountStatsBar'
 import { SyncHubPanel } from './components/SyncHubPanel'
+import { ExchangeConnectPanel } from './components/ExchangeConnectPanel'
 import { HomeRightPanel } from './components/HomeRightPanel'
 import { ProgressDock } from './components/ProgressDock'
 import { Mt5StatusButton } from './components/Mt5StatusButton'
@@ -27,6 +28,7 @@ import { SessionSummaryModal } from './components/SessionSummaryModal'
 import { TradeMetaModal } from './components/TradeMetaModal'
 import { TradeReviewModal } from './components/TradeReviewModal'
 import { useMt5Sync } from './hooks/useMt5Sync'
+import { useExchangeSync } from './hooks/useExchangeSync'
 import { useCalendarSplit, useNavSplit } from './hooks/useCalendarSplit'
 import {
   buildAccountSummary,
@@ -222,7 +224,25 @@ function App() {
     language: lang,
   })
 
-  const usingLiveData = bridgeOnline && hasBridgeData
+  const exchangeSync = useExchangeSync({
+    trades,
+    cash,
+    onTrades: persistTrades,
+    onCash: persistCash,
+  })
+
+  const combinedOpenPositions = useMemo(
+    () => [...openPositions, ...exchangeSync.openPositions],
+    [openPositions, exchangeSync.openPositions],
+  )
+  const combinedFloatingPnl = floatingPnl + exchangeSync.floatingPnl
+
+  const handleSyncNow = useCallback(() => {
+    void verifyAll()
+    void exchangeSync.syncNow()
+  }, [verifyAll, exchangeSync])
+
+  const usingLiveData = (bridgeOnline && hasBridgeData) || exchangeSync.connections.length > 0
   /** Siempre usar estado persistido (actualizado por sync); bridgeTrades puede ir desfasado */
   const activeTrades = trades
   const activeCash = cash
@@ -274,10 +294,10 @@ function App() {
     const todayDetail =
       todayClosedCount > 0
         ? tf(t.health.closedToday, { count: todayClosedCount, date: todayKey })
-        : openPositions.length > 0
+        : combinedOpenPositions.length > 0
           ? tf(t.health.openToday, {
-              count: openPositions.length,
-              pnl: formatMoney(floatingPnl),
+              count: combinedOpenPositions.length,
+              pnl: formatMoney(combinedFloatingPnl),
             })
           : tf(t.health.noActivityToday, { date: todayKey })
 
@@ -325,8 +345,8 @@ function App() {
     todayClosedCount,
     todayKey,
     lastSyncAt,
-    openPositions.length,
-    floatingPnl,
+    combinedOpenPositions.length,
+    combinedFloatingPnl,
     t,
     tf,
   ])
@@ -345,13 +365,16 @@ function App() {
     [tradesForView, cashForView, settings],
   )
   const dayMap = useMemo(
-    () => mergeLiveDayMap(dayActivityMap(activities), todayKey, openPositions),
-    [activities, todayKey, openPositions],
+    () => mergeLiveDayMap(dayActivityMap(activities), todayKey, combinedOpenPositions),
+    [activities, todayKey, combinedOpenPositions],
   )
   const selectedDay = dayMap.get(selectedDate)
   const balance = useMemo(() => currentBalance(activities, settings), [activities, settings])
 
-  const liveBalance = mt5Status?.balance ?? settings.brokerBalance ?? null
+  const liveBalance =
+    mt5Status?.balance ??
+    settings.brokerBalance ??
+    (exchangeSync.hasBalance ? exchangeSync.balanceSum : null)
   const closedPnl = useMemo(() => netTradePnl(tradesForView), [tradesForView])
 
   const displayAccount = useMemo(() => {
@@ -993,7 +1016,10 @@ function App() {
             dailyNotes={dailyNotesMap}
             onRestore={handleRestoreBackup}
             onShowWelcome={() => setShowWelcome(true)}
-            onResyncDone={() => void verifyAll()}
+            onResyncDone={() => {
+              void verifyAll()
+              void exchangeSync.syncNow()
+            }}
             t={t.settings}
             tLang={t.language}
             profitGoals={todayGoals}
@@ -1002,6 +1028,7 @@ function App() {
             tThresholds={t.thresholds}
           />
         ) : mainTab === 'sync' ? (
+          <div className="sync-hub-stack">
           <SyncHubPanel
             bridgeOnline={bridgeOnline}
             mt5Connected={mt5Connected}
@@ -1010,10 +1037,10 @@ function App() {
             tradeCount={bridgeTradeCount || activeTrades.length}
             liveTradeCount={activeTrades.length || bridgeTradeCount}
             usingLiveTrades={usingLiveData}
-            openPositions={openPositions}
-            floatingPnl={floatingPnl}
+            openPositions={combinedOpenPositions}
+            floatingPnl={combinedFloatingPnl}
             syncError={syncError}
-            onSyncNow={() => void verifyAll()}
+            onSyncNow={handleSyncNow}
             onSessionSummary={() => setShowSessionSummary(true)}
             onWeeklySummary={() => setShowWeeklySummary(true)}
             onImportExcel={() => fileRef.current?.click()}
@@ -1029,6 +1056,18 @@ function App() {
             dateLocale={dateLocale}
             t={t.syncHub}
           />
+          <ExchangeConnectPanel
+            catalog={exchangeSync.catalog}
+            connections={exchangeSync.connections}
+            syncing={exchangeSync.syncing}
+            error={exchangeSync.error}
+            onSave={exchangeSync.saveConnection}
+            onDelete={exchangeSync.removeConnection}
+            onTest={(id) => exchangeSync.testConnection({ id })}
+            onSync={(id) => exchangeSync.syncNow(id)}
+            t={t.exchanges}
+          />
+          </div>
         ) : mainTab === 'analytics' ? (
           <AnalyticsPanel
             trades={tradesForView}

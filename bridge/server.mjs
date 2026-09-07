@@ -7,6 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
 import { processMt5Event, createEmptyState } from './mt5Processor.mjs'
+import { handleExchanges } from './exchanges/index.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -327,6 +328,10 @@ export function startBridge(options = {}) {
           })
         }
         return json(res, 200, { ok: false, pending: false, idle: true })
+      }
+
+      if (await handleExchanges(req, res, url, { json, readBody, dataDir: bridgeDir() })) {
+        return
       }
 
       json(res, 404, { error: 'Not found' })

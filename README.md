@@ -2,7 +2,7 @@
 
 **Diario de trading con sincronización MetaTrader 5 · Desktop app for Windows**
 
-[![Version](https://img.shields.io/badge/version-1.2.8-blue)](package.json)
+[![Version](https://img.shields.io/badge/version-1.2.9-blue)](package.json)
 [![Stack](https://img.shields.io/badge/stack-React%20%2B%20Electron%20%2B%20Python-61dafb)](package.json)
 
 ---
@@ -19,6 +19,7 @@ Aplicación de escritorio para llevar un **diario de trading** con calendario Pn
 | **Vista día** | Hero PnL, resumen últimos 14 días (total, prom./día, días +/−), trades, notas en modal |
 | **Metas y reglas** | Objetivos diarios/semanales/mensuales; reglas de trading con alertas PARAR |
 | **MT5 sync** | Trades cerrados, posiciones abiertas, saldo y equity cada ~2 s; panel compacto en sidebar |
+| **Exchanges** | Binance, Bybit, OKX y Bitget (API de solo lectura, futuros ~90 días) |
 | **Analíticas** | Expectancy, profit factor, drawdown, rachas, riesgo semanal, finanzas de cuenta, búsqueda |
 | **Proyección** | Escenarios 15–90 días según racha actual |
 | **Búsqueda** | Buscar trades y saltar al día en el calendario |
@@ -90,6 +91,7 @@ Desktop **trading journal** with a PnL calendar, daily notes, analytics, and liv
 | **Day view** | PnL hero, last-14-days summary (total, avg/day, win/loss days), trades, notes modal |
 | **Goals & rules** | Daily/weekly/monthly profit goals; trading rules with STOP alerts |
 | **MT5 sync** | Closed trades, open positions, balance & equity ~every 2s; compact sidebar panel |
+| **Exchanges** | Binance, Bybit, OKX and Bitget (read-only API, ~90 days of futures) |
 | **Analytics** | Expectancy, profit factor, drawdown, streaks, weekly risk advice, account finance, search |
 | **Projection** | 15–90 day scenarios from current streak |
 | **Search** | Find trades and jump to calendar day |

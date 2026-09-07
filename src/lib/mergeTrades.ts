@@ -1,6 +1,19 @@
 import type { Trade } from '../types/trade'
 import { sortTradesRecentFirst } from './tradeSort'
 
+const EXCHANGE_SOURCES = new Set(['binance', 'bybit', 'okx', 'bitget'])
+
+export function isExchangeTrade(t: Trade): boolean {
+  return Boolean(t.source && EXCHANGE_SOURCES.has(t.source))
+}
+
+/** Closed positions that came from the MT5 bridge (legacy rows have no source). */
+export function isMt5SyncedTrade(t: Trade): boolean {
+  if (isExchangeTrade(t)) return false
+  if (t.source && t.source !== 'mt5') return false
+  return Boolean(tradePositionKey(t))
+}
+
 export function tradePositionKey(t: Trade): string | null {
   if (t.positionId) return t.positionId
   const m = t.notes.match(/(?:Posici[oó]n|MT5)\s*#(\d+)/i)
@@ -41,10 +54,11 @@ export function mergeMt5Live(local: Trade[], bridge: Trade[]): Trade[] {
   return mergeTrades(manualOnly, bridge)
 }
 
-/** Sync completo: el puente reemplaza TODOS los trades MT5; solo quedan manuales sin positionId */
+/** Sync completo: el puente reemplaza trades MT5; manuales y exchanges se conservan */
 export function replaceMt5FromBridge(local: Trade[], bridge: Trade[]): Trade[] {
-  const manualOnly = local.filter((t) => !tradePositionKey(t))
-  return mergeTrades(manualOnly, bridge)
+  const keep = local.filter((t) => !isMt5SyncedTrade(t))
+  const tagged = bridge.map((t) => ({ ...t, source: t.source ?? ('mt5' as const) }))
+  return mergeTrades(keep, tagged)
 }
 
 export function cashMovementKey(c: {

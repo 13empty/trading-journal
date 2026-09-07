@@ -26,6 +26,7 @@ dist-ssr
 
 bridge/bridge-state.json
 bridge/bridge-command.json
+bridge/exchange-keys.json
 bridge-data/
 release/
 build/*

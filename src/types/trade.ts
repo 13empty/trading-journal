@@ -1,5 +1,7 @@
 export type PeriodView = 'day' | 'week' | 'month' | 'year'
 
+export type TradeSource = 'mt5' | 'binance' | 'bybit' | 'okx' | 'bitget' | 'manual'
+
 export interface Trade {
   id: string
   date: string
@@ -11,6 +13,8 @@ export interface Trade {
   pnl: number
   fees: number
   notes: string
+  /** Origin of the fill: MT5 bridge or crypto exchange connector */
+  source?: TradeSource
   positionId?: string
   /** ISO or MT5 datetime string from bridge */
   openTime?: string

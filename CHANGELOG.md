@@ -7,6 +7,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.9] — 2026-09-07
+
+### Added / Añadido
+
+- **ES:** Conectores read-only para Binance, Bybit, OKX y Bitget (futuros, ~90 días)  
+  **EN:** Read-only connectors for Binance, Bybit, OKX and Bitget (futures, ~90 days)
+
+---
+
 ## [1.2.8] — 2026-09-07
 
 ### Added / Añadido

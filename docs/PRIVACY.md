@@ -7,6 +7,7 @@
 | Archivo / carpeta | Motivo |
 |-------------------|--------|
 | `bridge/bridge-state.json` | Historial MT5, cuenta, servidor, saldo |
+| `bridge/exchange-keys.json` | API keys de Binance/Bybit/OKX/Bitget |
 | `release/` | Ejecutable compilado en tu PC (puede incluir rutas locales) |
 | `build/mt5-sync.exe`, `build/pyinstaller-*` | Artefactos de compilación con rutas de tu máquina |
 | `*.xlsx`, `ReportHistory*` | Exportaciones de MT5 |
@@ -40,6 +41,7 @@ git commit -m "chore: remove personal paths and sample account from docs"
 Do **not** commit or share:
 
 - `bridge/bridge-state.json` — MT5 sync state (account, trades, balance)
+- `bridge/exchange-keys.json` — crypto exchange API keys
 - `release/`, local build artifacts, MT5 Excel exports
 - `.env` and key files
 

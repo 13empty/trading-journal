@@ -11,6 +11,7 @@ files:
   - bridge/**/*
   - "!bridge/bridge-state.json"
   - "!bridge/bridge-command.json"
+  - "!bridge/exchange-keys.json"
   - "!**/*.xlsx"
   - "!tradingview/**"
   - bridge-python/**/*

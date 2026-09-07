@@ -67,6 +67,7 @@ function tradeExtras(p, account) {
   if (p.closeTime) extra.closeTime = String(p.closeTime)
   if (p.swap != null) extra.swap = Math.abs(Number(p.swap) || 0)
   if (p.commission != null) extra.commission = Math.abs(Number(p.commission) || 0)
+  extra.source = 'mt5'
   if (account) extra.accountId = String(account)
   const stopLoss = numOrUndef(p.stopLoss ?? p.sl)
   const takeProfit = numOrUndef(p.takeProfit ?? p.tp)

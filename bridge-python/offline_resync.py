@@ -155,8 +155,12 @@ def run_offline_resync() -> bool:
         return False
 
     existing = state.get("trades") or []
-    manual_only = [t for t in existing if not t.get("positionId")]
-    trades = list(manual_only)
+    keep = [
+        t
+        for t in existing
+        if t.get("source") not in (None, "", "mt5") or not t.get("positionId")
+    ]
+    trades = list(keep)
 
     by_pos = group_closed_positions(deals)
     to_fetch = datetime.now() + timedelta(days=1)
