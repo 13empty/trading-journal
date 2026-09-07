@@ -2,7 +2,7 @@
 
 **Diario de trading con sincronización MetaTrader 5 · Desktop app for Windows**
 
-[![Version](https://img.shields.io/badge/version-1.2.6-blue)](package.json)
+[![Version](https://img.shields.io/badge/version-1.2.8-blue)](package.json)
 [![Stack](https://img.shields.io/badge/stack-React%20%2B%20Electron%20%2B%20Python-61dafb)](package.json)
 
 ---
@@ -76,13 +76,6 @@ trading-journal/
 
 Los trades y notas se guardan **localmente** en el perfil del usuario (`%APPDATA%/trading-journal/`). No se envían a servidores externos.
 
-### Donaciones
-
-Si te resulta útil este proyecto, puedes apoyar su desarrollo:
-
-- **USDC (EVM):** `0xE077af7EE3FB1611BC21b2a220d78274576994F3`
-- **PayPal:** [paypal.me/13mpty](https://paypal.me/13mpty)
-
 ---
 
 ## English
@@ -143,13 +136,6 @@ See the Spanish section above — same tree under `trading-journal/`.
 ### Data & privacy
 
 Trades and notes are stored **locally** in the user profile (`%APPDATA%/trading-journal/`). No cloud upload by default.
-
-### Donations
-
-If you find this project helpful, you can support its development:
-
-- **USDC (EVM):** `0xE077af7EE3FB1611BC21b2a220d78274576994F3`
-- **PayPal:** [paypal.me/13mpty](https://paypal.me/13mpty)
 
 ---
 

@@ -7,6 +7,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.8] — 2026-09-07
+
+### Added / Añadido
+
+- **ES:** Proyección de vuelta en el menú; calendario de 3 meses con PnL proyectado  
+  **EN:** Projection back in the nav; 3-month calendar with projected PnL
+
+### Changed / Cambiado
+
+- **ES:** Theme Sangre más carbón (no negro puro)  
+  **EN:** Sangre theme lifted off pitch black (charcoal, not pure black)
+
+---
+
 ## [1.2.7] — 2026-08-20
 
 ### Added / Añadido

@@ -10,6 +10,9 @@ files:
   - dist/**/*
   - bridge/**/*
   - "!bridge/bridge-state.json"
+  - "!bridge/bridge-command.json"
+  - "!**/*.xlsx"
+  - "!tradingview/**"
   - bridge-python/**/*
   - electron/**/*
   - package.json

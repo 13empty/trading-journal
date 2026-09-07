@@ -48,3 +48,6 @@ __pycache__/
 Thumbs.db
 desktop.ini
 tmp-asar-check/
+
+# Local strategy scripts (not part of the public app)
+tradingview/
