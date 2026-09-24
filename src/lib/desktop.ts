@@ -159,12 +159,12 @@ export async function installUpdateDesktop(): Promise<void> {
   await window.desktop?.installUpdate()
 }
 
-export type AppWindowView = 'day' | 'analytics' | 'projection' | 'sync' | 'settings'
+export type AppWindowView = 'day' | 'analytics' | 'exits' | 'projection' | 'sync' | 'settings'
 
 export function readAppViewParam(): 'home' | AppWindowView {
   try {
     const v = new URLSearchParams(window.location.search).get('view')
-    if (v === 'day' || v === 'analytics' || v === 'projection' || v === 'sync' || v === 'settings') {
+    if (v === 'day' || v === 'analytics' || v === 'exits' || v === 'projection' || v === 'sync' || v === 'settings') {
       return v
     }
   } catch {

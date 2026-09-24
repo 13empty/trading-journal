@@ -7,6 +7,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.10] — 2026-09-24
+
+### Added / Añadido
+
+- **ES:** Tab Salidas: compara el cierre con el SL y el TP y dice si sales antes (profit anticipado o corte de riesgo)  
+  **EN:** Exits tab: compares the close with SL and TP and says whether you leave early (early profit or a risk cut)
+
+---
+
 ## [1.2.9] — 2026-09-07
 
 ### Added / Añadido

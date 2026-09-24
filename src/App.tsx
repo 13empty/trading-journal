@@ -6,6 +6,7 @@ import type { Trade } from './types/trade'
 import { Calendar } from './components/Calendar'
 import { SystemHealthPanel, type HealthCheck } from './components/SystemHealth'
 import { AnalyticsPanel } from './components/AnalyticsPanel'
+import { ExitPlanPanel } from './components/ExitPlanPanel'
 import { ProjectionPanel } from './components/ProjectionPanel'
 import { DayHero } from './components/DayHero'
 import { DayStatusChips } from './components/DayStatusChips'
@@ -1089,6 +1090,13 @@ function App() {
             mismatchHint={financeMismatchHint}
             onSelectDate={handleSelectDate}
             dateLocale={dateLocale}
+          />
+        ) : mainTab === 'exits' ? (
+          <ExitPlanPanel
+            trades={tradesForView}
+            metaMap={tradeMetaMap}
+            t={t.exitPlan}
+            sideLabels={t.side}
           />
         ) : mainTab === 'projection' ? (
           <ProjectionPanel

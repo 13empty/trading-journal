@@ -32,6 +32,7 @@ const viewWindows = new Map()
 const VIEW_TITLES = {
   day: 'Diario',
   analytics: 'Analytics',
+  exits: 'Salidas',
   projection: 'Proyección',
   sync: 'Sync',
   settings: 'Opciones',

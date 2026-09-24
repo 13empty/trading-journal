@@ -212,6 +212,7 @@ export interface Translations {
     calendar: string
     day: string
     analytics: string
+    exits: string
     projection: string
     sync: string
     settings: string
@@ -253,6 +254,58 @@ export interface Translations {
     calendarLegendPast: string
     calendarLegendFuture: string
     calendarHorizon: string
+  }
+  exitPlan: {
+    title: string
+    subtitle: string
+    verdictTitle: string
+    empty: string
+    no_data: string
+    on_plan: string
+    early_profit_full_sl: string
+    early_both: string
+    early_profit_only: string
+    early_cut_ok: string
+    too_many_scratches: string
+    mixed: string
+    extraLeft: string
+    extraSaved: string
+    extraReached: string
+    kpiHitTp: string
+    kpiEarlyProfit: string
+    kpiHitSl: string
+    kpiEarlyCut: string
+    kpiScratch: string
+    kpiCapture: string
+    listTitle: string
+    listEarlyOnly: string
+    listAll: string
+    listEmpty: string
+    colDate: string
+    colSymbol: string
+    colSide: string
+    colExit: string
+    colDetail: string
+    colPnl: string
+    detailEarlyProfit: string
+    detailReachedTp: string
+    detailEarlyCut: string
+    detailOverrun: string
+    detailHitTp: string
+    detailHitSl: string
+    detailScratch: string
+    detailProfitNoTp: string
+    detailLossNoSl: string
+    kind: {
+      hit_tp: string
+      early_profit: string
+      hit_sl: string
+      early_cut: string
+      scratch: string
+      sl_overrun: string
+      profit_no_tp: string
+      loss_no_sl: string
+    }
   }
   journal: {
     dailyNotes: string
