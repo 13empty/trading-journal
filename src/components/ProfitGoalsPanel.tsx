@@ -86,7 +86,7 @@ export function ProfitGoalsPanel({
               <div className="goal-bar">
                 <div
                   className={`goal-fill ${goal.status === 'reached' ? 'positive' : pnlClass(goal.current)}`}
-                  style={{ width: `${goal.pct}%` }}
+                  style={{ width: `${Math.min(100, Math.max(0, goal.pct))}%` }}
                 />
               </div>
             </li>

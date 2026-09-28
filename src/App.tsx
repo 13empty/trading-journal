@@ -8,7 +8,9 @@ import { SystemHealthPanel, type HealthCheck } from './components/SystemHealth'
 import { AnalyticsPanel } from './components/AnalyticsPanel'
 import { ExitPlanPanel } from './components/ExitPlanPanel'
 import { ProjectionPanel } from './components/ProjectionPanel'
+import { GoalPlanPanel } from './components/GoalPlanPanel'
 import { DayHero } from './components/DayHero'
+import { DayGoalProgress } from './components/DayGoalProgress'
 import { DayStatusChips } from './components/DayStatusChips'
 import { SideNav, type MainTab } from './components/SideNav'
 import { AccountStatsBar } from './components/AccountStatsBar'
@@ -23,6 +25,7 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { WelcomeModal } from './components/WelcomeModal'
 import { BrokerWizardModal } from './components/BrokerWizardModal'
 import { UpdateBanner } from './components/UpdateBanner'
+import { APP_VERSION } from './lib/appVersion'
 import { DayTradeJournalBar } from './components/DayTradeJournalBar'
 import { WeeklySummaryModal } from './components/WeeklySummaryModal'
 import { SessionSummaryModal } from './components/SessionSummaryModal'
@@ -489,9 +492,9 @@ function App() {
 
   useEffect(() => {
     const id = resolveAppearance(settings)
-    const preset = applyAppearance(id)
+    const preset = applyAppearance(id, settings.customPalette)
     void setTitleBarThemeDesktop(preset.titleBar)
-  }, [settings.appearance, settings.uiMode])
+  }, [settings.appearance, settings.uiMode, settings.customPalette])
 
   // Keep appearance / language / etc in sync across secondary windows.
   useEffect(() => {
@@ -708,15 +711,17 @@ function App() {
     if (!isHomeWindow && mainTab !== 'day') setMainTab('day')
   }
 
-  const handleNavChange = useCallback(
+  const openInSidePanel = useCallback(
     (tab: MainTab) => {
-      if (tab === 'calendar') {
-        if (!isHomeWindow) void focusMainWindow()
-        return
-      }
-      if (isHomeWindow || tab !== windowView) {
-        void openAppView(tab as AppWindowView)
-        return
+      if (!isHomeWindow) {
+        if (tab === 'calendar') {
+          void focusMainWindow()
+          return
+        }
+        if (tab !== windowView) {
+          void openAppView(tab as AppWindowView)
+          return
+        }
       }
       setMainTab(tab)
     },
@@ -833,27 +838,30 @@ function App() {
     <>
     <div className="titlebar-drag-region" aria-hidden />
     <div
-      className={`app-shell${isHomeWindow ? ' app-shell-home' : ' app-shell-view'}`}
+      className={`app-shell${isHomeWindow ? ' app-shell-home' : ' app-shell-view'}${isHomeWindow && mainTab !== 'calendar' ? ' home-side-open' : ''}`}
       ref={appShellRef}
       style={{ ['--nav-rail-width' as string]: `${navRailWidth}px` }}
     >
       <SideNav
-        active={isHomeWindow ? 'calendar' : mainTab}
-        onChange={handleNavChange}
+        active={mainTab}
+        onChange={openInSidePanel}
         t={t.nav}
         brandTitle={t.brand.title}
         footer={
-          <Mt5StatusButton
+          <>
+            <span className="nav-app-version">v{APP_VERSION}</span>
+            <Mt5StatusButton
             bridgeOnline={bridgeOnline}
             mt5Connected={mt5Connected}
-            onOpenSync={() => void openAppView('sync')}
+            onOpenSync={() => openInSidePanel('sync')}
             label="MT5"
             titles={{
               connected: t.mt5.title,
               waiting: t.mt5.waiting,
               offline: t.mt5.bridgeOff,
             }}
-          />
+            />
+          </>
         }
       />
 
@@ -904,6 +912,8 @@ function App() {
             displayMode={settings.calendarPnlDisplay ?? 'both'}
             onDisplayModeChange={(mode) => persistSettings({ ...settings, calendarPnlDisplay: mode })}
             initialBalance={settings.initialBalance}
+            language={lang}
+            onLanguageChange={(language) => persistSettings({ ...settings, language })}
           />
           <AccountStatsBar
             balance={displayBalance}
@@ -997,7 +1007,10 @@ function App() {
             equityPoints={equityPoints}
             dateFormat={t.header.dateFormat}
             dateLocale={dateLocale}
+            dayMap={dayMap}
             profitGoals={profitGoalsForDay}
+            goalPlans={settings.goalPlans ?? []}
+            tPlan={t.goalPlan}
             thresholdRules={thresholdRulesForDay}
             showGoals={hasAnyProfitGoal(settings)}
             showRules={isTradingRulesEnabled(settings)}
@@ -1027,6 +1040,7 @@ function App() {
             thresholdRules={todayThresholdRules}
             tGoals={t.profitGoals}
             tThresholds={t.thresholds}
+            tUpdates={t.updates}
           />
         ) : mainTab === 'sync' ? (
           <div className="sync-hub-stack">
@@ -1046,7 +1060,7 @@ function App() {
             onWeeklySummary={() => setShowWeeklySummary(true)}
             onImportExcel={() => fileRef.current?.click()}
             onCashForm={() => setShowCashForm(true)}
-            onProjection={() => void openAppView('projection')}
+            onProjection={() => openInSidePanel('projection')}
             projectionLabel={t.nav.projection}
             importMsg={importMsg}
             mt5={t.mt5}
@@ -1106,6 +1120,15 @@ function App() {
             dateLocale={dateLocale}
             t={t.projection}
           />
+        ) : mainTab === 'goals' ? (
+          <GoalPlanPanel
+            plans={settings.goalPlans ?? []}
+            dayMap={dayMap}
+            asOfDate={todayKey}
+            dateLocale={dateLocale}
+            onChange={(goalPlans) => persistSettings({ ...settings, goalPlans })}
+            t={t.goalPlan}
+          />
         ) : (
           <div className="tab-panel-day">
             <DayHero
@@ -1122,6 +1145,15 @@ function App() {
               showRecentSummary
               hideChart={selectedDate === todayKey && todayRuleBreach}
               t={t.dayHero}
+            />
+
+            <DayGoalProgress
+              goals={profitGoalsForDay}
+              plans={settings.goalPlans ?? []}
+              dayMap={dayMap}
+              selectedDate={selectedDate}
+              t={t.profitGoals}
+              tPlan={t.goalPlan}
             />
 
             <DayStatusChips
@@ -1417,7 +1449,7 @@ function App() {
           onClose={() => setShowSessionSummary(false)}
           onEditNotes={() => {
             setShowSessionSummary(false)
-            void openAppView('day')
+            openInSidePanel('day')
           }}
         />
       )}

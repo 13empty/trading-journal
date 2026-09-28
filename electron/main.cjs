@@ -34,6 +34,7 @@ const VIEW_TITLES = {
   analytics: 'Analytics',
   exits: 'Salidas',
   projection: 'Proyección',
+  goals: 'Metas',
   sync: 'Sync',
   settings: 'Opciones',
 }
@@ -717,12 +718,12 @@ function startStaticServer(distDir) {
               res.end()
               return
             }
-            res.writeHead(200, { 'Content-Type': 'text/html' })
+            res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' })
             res.end(indexHtml)
           })
           return
         }
-        res.writeHead(200, { 'Content-Type': contentType(filePath) })
+        res.writeHead(200, { 'Content-Type': contentType(filePath), 'Cache-Control': 'no-cache' })
         res.end(data)
       })
     })

@@ -11,9 +11,10 @@ export interface DesktopAppInfo {
 export type UpdateStatus =
   | { state: 'idle' }
   | { state: 'checking' }
-  | { state: 'available'; version: string }
+  | { state: 'current' }
+  | { state: 'available'; version: string; notes?: string; url?: string; downloadUrl?: string }
   | { state: 'downloading'; percent: number }
-  | { state: 'ready'; version: string }
+  | { state: 'ready'; version: string; notes?: string }
   | { state: 'error'; message?: string }
   | { state: 'disabled' }
 
@@ -159,12 +160,20 @@ export async function installUpdateDesktop(): Promise<void> {
   await window.desktop?.installUpdate()
 }
 
-export type AppWindowView = 'day' | 'analytics' | 'exits' | 'projection' | 'sync' | 'settings'
+export type AppWindowView = 'day' | 'analytics' | 'exits' | 'projection' | 'goals' | 'sync' | 'settings'
 
 export function readAppViewParam(): 'home' | AppWindowView {
   try {
     const v = new URLSearchParams(window.location.search).get('view')
-    if (v === 'day' || v === 'analytics' || v === 'exits' || v === 'projection' || v === 'sync' || v === 'settings') {
+    if (
+      v === 'day' ||
+      v === 'analytics' ||
+      v === 'exits' ||
+      v === 'projection' ||
+      v === 'goals' ||
+      v === 'sync' ||
+      v === 'settings'
+    ) {
       return v
     }
   } catch {

@@ -12,6 +12,7 @@ export interface CashMovement {
 }
 
 import type { AppLanguage } from '../i18n/types'
+import type { GoalPlan } from './goalPlan'
 import type { TrackingGoals } from './journal'
 
 export type CalendarPnlDisplay = 'dollar' | 'percent' | 'both'
@@ -37,6 +38,20 @@ export type UiMode = 'dark' | 'light'
 /** @deprecated accents are baked into each appearance */
 export type AccentTheme = 'blue' | 'teal' | 'green' | 'amber' | 'rose'
 
+/** Colors the user can edit. Typography stays with the selected pack. */
+export type PaletteKey =
+  | 'bg'
+  | 'surface'
+  | 'surfaceElevated'
+  | 'border'
+  | 'text'
+  | 'muted'
+  | 'accent'
+  | 'green'
+  | 'red'
+
+export type CustomPalette = Partial<Record<PaletteKey, string>>
+
 export interface AppSettings extends TrackingGoals {
   initialBalance: number
   brokerBalance?: number
@@ -48,6 +63,8 @@ export interface AppSettings extends TrackingGoals {
   language?: AppLanguage
   /** Visual appearance pack */
   appearance?: AppearanceId
+  /** User color overrides on top of the selected pack. */
+  customPalette?: CustomPalette
   /** @deprecated migrated into appearance */
   uiMode?: UiMode
   /** @deprecated accents come from appearance packs */
@@ -68,6 +85,8 @@ export interface AppSettings extends TrackingGoals {
   updateFeedUrl?: string
   /** Calendario: mostrar PnL en $, % o ambos */
   calendarPnlDisplay?: CalendarPnlDisplay
+  /** Planes de meta: monto diario, plazo y reglas */
+  goalPlans?: GoalPlan[]
 }
 
 export interface Mt5OpenPosition {

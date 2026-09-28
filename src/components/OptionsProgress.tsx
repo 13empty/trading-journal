@@ -37,8 +37,8 @@ export function MonthlyGoalGauge({
         />
       </svg>
       <div className="monthly-goal-gauge-center">
-        <span className={`monthly-goal-gauge-pct ${pnlClass(goal.current)}`}>{pct.toFixed(1)}%</span>
         <span className="monthly-goal-gauge-caption">{label}</span>
+        <span className={`monthly-goal-gauge-pct ${pnlClass(goal.current)}`}>{goal.pct.toFixed(1)}%</span>
         <span className={`monthly-goal-gauge-amt ${pnlClass(goal.current)}`}>
           {formatMoney(goal.current)} / {formatMoney(goal.goal)}
         </span>
@@ -47,13 +47,45 @@ export function MonthlyGoalGauge({
   )
 }
 
-/** Horizontal risk rows + status pill per rule (mockup Options panel). */
-export function RiskRulesSummary({
+export function RiskBoardStatus({
   rules,
   t,
 }: {
   rules: ThresholdRuleState[]
   t: Translations['thresholds']
+}) {
+  const active = rules.filter((r) => r.status !== 'off')
+  const level: 'off' | 'low' | 'medium' | 'high' =
+    active.length === 0
+      ? 'off'
+      : active.some((r) => r.status === 'warn')
+        ? 'high'
+        : active.some((r) => (r.progress ?? 0) >= 70)
+          ? 'medium'
+          : 'low'
+  const label =
+    level === 'high' ? t.riskHigh : level === 'medium' ? t.riskMedium : level === 'low' ? t.riskLow : t.riskOff
+  return (
+    <div className="settings-risk-status">
+      <span className="settings-risk-status-label">{t.riskStatusLabel}</span>
+      <span className={`risk-pill risk-pill-${level === 'off' ? 'low' : level}`}>
+        <i className="risk-pill-dot" aria-hidden="true" />
+        {label}
+      </span>
+      {level === 'low' ? <span className="settings-risk-status-note">{t.riskOperating}</span> : null}
+    </div>
+  )
+}
+
+/** Horizontal risk rows + status pill per rule (mockup Options panel). */
+export function RiskRulesSummary({
+  rules,
+  t,
+  hidePills = false,
+}: {
+  rules: ThresholdRuleState[]
+  t: Translations['thresholds']
+  hidePills?: boolean
 }) {
   const active = rules.filter((r) => r.status !== 'off')
   if (active.length === 0) return null
@@ -88,7 +120,7 @@ export function RiskRulesSummary({
               {rule.progress != null && (
                 <span className="risk-summary-pct">{rule.progress.toFixed(2)}%</span>
               )}
-              {level !== 'off' && (
+              {!hidePills && level !== 'off' && (
                 <span className={`risk-pill risk-pill-${level}`}>
                   <i className="risk-pill-dot" aria-hidden="true" />
                   {levelLabel}

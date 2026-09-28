@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { AppearanceId, AppSettings } from '../types/account'
+import type { AppearanceId, AppSettings, PaletteKey } from '../types/account'
 import type { CashMovement } from '../types/account'
 import type { Trade } from '../types/trade'
 import type { DailyNote, TradeMeta } from '../types/journal'
@@ -8,7 +8,6 @@ import { SUPPORTED_LANGUAGES, type AppLanguage } from '../i18n/types'
 import { buildBackup, downloadBackup, parseBackup } from '../lib/backup'
 import type { BackupBundle } from '../lib/backup'
 import {
-  checkForUpdatesDesktop,
   desktopNotify,
   getDesktopInfo,
   isElectronApp,
@@ -18,14 +17,24 @@ import {
   setTitleBarThemeDesktop,
   type DesktopAppInfo,
 } from '../lib/desktop'
+import { checkAppUpdates } from '../lib/appUpdates'
 import { reloadBridgeFromDisk } from '../lib/mt5Bridge'
 import { APP_VERSION } from '../lib/appVersion'
-import { deriveProfitGoals } from '../lib/profitGoals'
+import { deriveProfitGoals, fillMissingAutoCalcGoals } from '../lib/profitGoals'
 import type { ProfitGoalState } from '../lib/profitGoals'
 import type { ThresholdRuleState } from '../types/journal'
-import { MonthlyGoalGauge, RiskRulesSummary } from './OptionsProgress'
-import { APPEARANCE_PRESETS, FEATURED_APPEARANCE_IDS, applyAppearance, isLightAppearance, resolveAppearance } from '../lib/theme'
-import { formatMoney, pnlClass } from '../lib/aggregations'
+import { MonthlyGoalGauge, RiskBoardStatus, RiskRulesSummary } from './OptionsProgress'
+import {
+  APPEARANCE_PRESETS,
+  FEATURED_APPEARANCE_IDS,
+  PALETTE_KEYS,
+  applyAppearance,
+  effectivePalette,
+  isLightAppearance,
+  normalizeHex,
+  paletteIsCustom,
+  resolveAppearance,
+} from '../lib/theme'
 
 interface Props {
   settings: AppSettings
@@ -43,6 +52,88 @@ interface Props {
   thresholdRules?: ThresholdRuleState[]
   tGoals?: Translations['profitGoals']
   tThresholds?: Translations['thresholds']
+  tUpdates: Translations['updates']
+}
+
+function PaletteEditor({
+  palette,
+  labels,
+  title,
+  hint,
+  resetLabel,
+  customized,
+  onChange,
+  onReset,
+}: {
+  palette: Record<PaletteKey, string>
+  labels: Record<PaletteKey, string>
+  title: string
+  hint: string
+  resetLabel: string
+  customized: boolean
+  onChange: (key: PaletteKey, raw: string) => void
+  onReset: () => void
+}) {
+  const [draft, setDraft] = useState<Partial<Record<PaletteKey, string>>>({})
+
+  return (
+    <div className="palette-editor-block">
+      <div className="palette-editor-head">
+        <h4>{title}</h4>
+        <button
+          type="button"
+          className="btn-ghost-sm"
+          onClick={() => {
+            setDraft({})
+            onReset()
+          }}
+          disabled={!customized}
+        >
+          {resetLabel}
+        </button>
+      </div>
+      <p className="hint-inline">{hint}</p>
+      <div className="palette-editor">
+        {PALETTE_KEYS.map((key) => (
+          <label key={key} className="palette-field">
+            <input
+              type="color"
+              aria-label={labels[key]}
+              value={palette[key]}
+              onChange={(e) => {
+                setDraft((current) => {
+                  const next = { ...current }
+                  delete next[key]
+                  return next
+                })
+                onChange(key, e.target.value)
+              }}
+            />
+            <span className="palette-field-copy">
+              <span className="palette-field-label">{labels[key]}</span>
+              <input
+                className="palette-hex"
+                spellCheck={false}
+                value={draft[key] ?? palette[key]}
+                onChange={(e) => {
+                  const next = e.target.value
+                  setDraft((current) => ({ ...current, [key]: next }))
+                  if (normalizeHex(next)) onChange(key, next)
+                }}
+                onBlur={() =>
+                  setDraft((current) => {
+                    const next = { ...current }
+                    delete next[key]
+                    return next
+                  })
+                }
+              />
+            </span>
+          </label>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export function SettingsPanel({
@@ -61,17 +152,30 @@ export function SettingsPanel({
   thresholdRules,
   tGoals,
   tThresholds,
+  tUpdates,
 }: Props) {
   const [info, setInfo] = useState<DesktopAppInfo | null>(null)
   const [logTail, setLogTail] = useState('')
   const [msg, setMsg] = useState<string | null>(null)
   const [reloading, setReloading] = useState(false)
   const [fullResyncing, setFullResyncing] = useState(false)
+  const [updateNote, setUpdateNote] = useState<string | null>(null)
+  const [checkingUpdates, setCheckingUpdates] = useState(false)
 
   useEffect(() => {
     void getDesktopInfo().then(setInfo)
     void readSyncLogTail(35).then(setLogTail)
   }, [])
+
+  useEffect(() => {
+    if (settings.autoCalcProfitGoals !== true) return
+    const patch = fillMissingAutoCalcGoals(settings)
+    if (!patch) return
+    onSettingsChange({ ...settings, ...patch, autoCalcProfitGoals: true })
+  }, [
+    settings,
+    onSettingsChange,
+  ])
 
   const monthlyGoal = profitGoals?.find((g) => g.id === 'monthly' && g.status !== 'off')
 
@@ -127,9 +231,7 @@ export function SettingsPanel({
   }
 
   const appearance = resolveAppearance(settings)
-  const [showMoreAppearances, setShowMoreAppearances] = useState(
-    () => !FEATURED_APPEARANCE_IDS.includes(resolveAppearance(settings)),
-  )
+  const [showMoreAppearances, setShowMoreAppearances] = useState(true)
 
   const setAppearance = (id: AppearanceId) => {
     const preset = applyAppearance(id)
@@ -138,6 +240,29 @@ export function SettingsPanel({
       ...settings,
       appearance: id,
       uiMode: isLightAppearance(id) ? 'light' : 'dark',
+      customPalette: undefined,
+    })
+  }
+
+  const palette = effectivePalette(appearance, settings.customPalette)
+  const paletteLabels: Record<PaletteKey, string> = {
+    bg: t.paletteBg,
+    surface: t.paletteSurface,
+    surfaceElevated: t.paletteElevated,
+    border: t.paletteBorder,
+    text: t.paletteText,
+    muted: t.paletteMuted,
+    accent: t.paletteAccent,
+    green: t.paletteGreen,
+    red: t.paletteRed,
+  }
+
+  const setPaletteColor = (key: PaletteKey, raw: string) => {
+    const hex = normalizeHex(raw)
+    if (!hex) return
+    onSettingsChange({
+      ...settings,
+      customPalette: { ...settings.customPalette, [key]: hex },
     })
   }
 
@@ -215,6 +340,16 @@ export function SettingsPanel({
             {showMoreAppearances ? t.appearanceLess : t.appearanceMore}
           </button>
         </div>
+        <PaletteEditor
+          palette={palette}
+          labels={paletteLabels}
+          title={t.paletteTitle}
+          hint={t.paletteHint}
+          resetLabel={t.paletteReset}
+          customized={paletteIsCustom(settings.customPalette)}
+          onChange={setPaletteColor}
+          onReset={() => onSettingsChange({ ...settings, customPalette: undefined })}
+        />
       </section>
 
       <section className="panel settings-section settings-goals-section">
@@ -224,9 +359,15 @@ export function SettingsPanel({
           <input
             type="checkbox"
             checked={settings.autoCalcProfitGoals === true}
-            onChange={(e) =>
-              onSettingsChange({ ...settings, autoCalcProfitGoals: e.target.checked })
-            }
+            onChange={(e) => {
+              const on = e.target.checked
+              const patch = on ? fillMissingAutoCalcGoals(settings) : null
+              onSettingsChange({
+                ...settings,
+                autoCalcProfitGoals: on,
+                ...(patch ?? {}),
+              })
+            }}
           />
           {t.autoCalcProfitGoals}
         </label>
@@ -252,15 +393,9 @@ export function SettingsPanel({
                 },
               ] as const
             ).map((field) => {
-              const live = profitGoals?.find((g) => g.id === field.id && g.status !== 'off')
               return (
                 <label key={field.id} className="settings-goal-field">
                   <span className="settings-goal-field-label">{field.label}</span>
-                  {live && tGoals && (
-                    <span className={`settings-goal-live ${pnlClass(live.current)}`}>
-                      {formatMoney(live.current)} / {formatMoney(live.goal)} · {live.pct.toFixed(1)}%
-                    </span>
-                  )}
                   <input
                     type="number"
                     step="any"
@@ -294,8 +429,15 @@ export function SettingsPanel({
       </section>
 
       <section className="panel settings-section settings-risk-section">
-        <h3>{t.thresholdsTitle}</h3>
-        <p className="hint-inline">{t.thresholdsHint}</p>
+        <div className="settings-risk-head">
+          <div>
+            <h3>{t.thresholdsSummaryTitle}</h3>
+            <p className="hint-inline">{t.thresholdsHint}</p>
+          </div>
+          {tThresholds && thresholdRules && settings.tradingRulesEnabled ? (
+            <RiskBoardStatus rules={thresholdRules} t={tThresholds} />
+          ) : null}
+        </div>
         <label className="check-row settings-master-toggle">
           <input
             type="checkbox"
@@ -408,7 +550,7 @@ export function SettingsPanel({
         )}
         {settings.tradingRulesEnabled && thresholdRules && tThresholds ? (
           <div className="settings-live-preview">
-            <RiskRulesSummary rules={thresholdRules} t={tThresholds} />
+            <RiskRulesSummary rules={thresholdRules} t={tThresholds} hidePills />
           </div>
         ) : null}
       </section>
@@ -495,6 +637,7 @@ export function SettingsPanel({
 
       <section className="panel settings-section">
         <h3>{t.updatesTitle}</h3>
+        <p className="hint-inline">{tUpdates.hint}</p>
         <p className="hint-inline">{t.updateFeedHint}</p>
         <label className="offset-field">
           {t.updateFeedUrl}
@@ -507,9 +650,24 @@ export function SettingsPanel({
             }
           />
         </label>
-        <button type="button" className="btn-secondary" onClick={() => void checkForUpdatesDesktop()}>
+        <button
+          type="button"
+          className="btn-secondary"
+          disabled={checkingUpdates}
+          onClick={() => {
+            setCheckingUpdates(true)
+            setUpdateNote(null)
+            void checkAppUpdates(true).then((status) => {
+              if (status.state === 'current') setUpdateNote(tUpdates.upToDate)
+              else if (status.state === 'available') setUpdateNote(tUpdates.available.replace('{version}', status.version))
+              else if (status.state === 'error') setUpdateNote(tUpdates.error)
+              setCheckingUpdates(false)
+            })
+          }}
+        >
           {t.checkUpdates}
         </button>
+        {updateNote && <p className="hint-inline">{updateNote}</p>}
       </section>
 
       <section className="panel settings-section">

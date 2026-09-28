@@ -56,7 +56,7 @@ export function ProgressDock({
                 <div className="goal-bar progress-dock-bar">
                   <div
                     className={`goal-fill ${goal.status === 'reached' ? 'positive' : pnlClass(goal.current)}`}
-                    style={{ width: `${Math.min(100, goal.pct)}%` }}
+                    style={{ width: `${Math.min(100, Math.max(0, goal.pct))}%` }}
                   />
                 </div>
               </div>

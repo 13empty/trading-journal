@@ -214,6 +214,7 @@ export interface Translations {
     analytics: string
     exits: string
     projection: string
+    goals: string
     sync: string
     settings: string
   }
@@ -254,6 +255,77 @@ export interface Translations {
     calendarLegendPast: string
     calendarLegendFuture: string
     calendarHorizon: string
+  }
+  goalPlan: {
+    title: string
+    subtitle: string
+    saved: string
+    untitled: string
+    newPlan: string
+    formTitle: string
+    name: string
+    namePlaceholder: string
+    dailyAmount: string
+    totalGoal: string
+    totalPlaceholder: string
+    totalHint: string
+    startDate: string
+    endDate: string
+    weekdaysOnly: string
+    strategyTitle: string
+    stopAtDaily: string
+    maxDailyLoss: string
+    maxTrades: string
+    riskPerTrade: string
+    strategy: string
+    strategyPlaceholder: string
+    save: string
+    delete: string
+    deleteConfirm: string
+    unsaved: string
+    savedState: string
+    calcTitle: string
+    invalidRange: string
+    invalidDaily: string
+    noDays: string
+    summaryUpcoming: string
+    summaryActive: string
+    summaryReached: string
+    summaryMissed: string
+    summaryNoDays: string
+    noteExact: string
+    noteEnough: string
+    noteShort: string
+    paceUpcoming: string
+    paceOnTrack: string
+    paceAhead: string
+    paceBehind: string
+    paceReached: string
+    paceMissed: string
+    totalTarget: string
+    dayUnit: string
+    made: string
+    expectedNow: string
+    left: string
+    includingToday: string
+    requiredDaily: string
+    plannedDaily: string
+    paceDaily: string
+    monthsTitle: string
+    month: string
+    monthDays: string
+    monthTarget: string
+    monthActual: string
+    monthLeft: string
+    covered: string
+    rulesTitle: string
+    ruleWeekdays: string
+    ruleAllDays: string
+    ruleStop: string
+    ruleLoss: string
+    ruleTrades: string
+    ruleRisk: string
+    ruleNone: string
   }
   exitPlan: {
     title: string
@@ -515,6 +587,18 @@ export interface Translations {
     appearance_ivory_desc: string
     appearanceMore: string
     appearanceLess: string
+    paletteTitle: string
+    paletteHint: string
+    paletteReset: string
+    paletteBg: string
+    paletteSurface: string
+    paletteElevated: string
+    paletteBorder: string
+    paletteText: string
+    paletteMuted: string
+    paletteAccent: string
+    paletteGreen: string
+    paletteRed: string
     goalsTitle: string
     goalsHint: string
     autoCalcProfitGoals: string
@@ -567,6 +651,7 @@ export interface Translations {
     updateFeedHint: string
     updateFeedUrl: string
     thresholdsTitle: string
+    thresholdsSummaryTitle: string
     thresholdsHint: string
     dailyLossLimit: string
     maxTradesPerDay: string
@@ -617,6 +702,8 @@ export interface Translations {
     install: string
     error: string
     retry: string
+    upToDate: string
+    hint: string
   }
   search: {
     title: string
@@ -718,6 +805,7 @@ export interface Translations {
     riskHigh: string
     riskOff: string
     riskStatusLabel: string
+    riskOperating: string
   }
   profitGoals: {
     title: string
@@ -728,6 +816,8 @@ export interface Translations {
     statusReached: string
     statusProgress: string
     statusOff: string
+    statusActive: string
+    statusInactive: string
     reachedBanner: string
     gaugeMonthly: string
   }

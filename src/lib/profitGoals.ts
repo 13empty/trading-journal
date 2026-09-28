@@ -77,7 +77,7 @@ export function evaluateProfitGoals(
       status: reached ? 'reached' : 'progress',
       current,
       goal: g,
-      pct: Math.min(100, Math.max(0, (current / g) * 100)),
+      pct: (current / g) * 100,
     }
   })
 }
@@ -145,4 +145,19 @@ export function deriveProfitGoals(
     weeklyProfitGoal: roundMoney(weekly),
     monthlyProfitGoal: roundMoney(monthly),
   }
+}
+
+/** When auto-calc is on and only one goal is filled, derive the other two. */
+export function fillMissingAutoCalcGoals(
+  settings: TrackingGoals,
+): Pick<TrackingGoals, 'dailyProfitGoal' | 'weeklyProfitGoal' | 'monthlyProfitGoal'> | null {
+  const has = (n?: number) => n != null && Number.isFinite(n) && n > 0
+  const daily = has(settings.dailyProfitGoal)
+  const weekly = has(settings.weeklyProfitGoal)
+  const monthly = has(settings.monthlyProfitGoal)
+  const count = Number(daily) + Number(weekly) + Number(monthly)
+  if (count !== 1) return null
+  if (monthly) return deriveProfitGoals('monthly', String(settings.monthlyProfitGoal))
+  if (weekly) return deriveProfitGoals('weekly', String(settings.weeklyProfitGoal))
+  return deriveProfitGoals('daily', String(settings.dailyProfitGoal))
 }

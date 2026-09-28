@@ -1,4 +1,4 @@
-import type { AppearanceId } from '../types/account'
+import type { AppearanceId, CustomPalette, PaletteKey } from '../types/account'
 
 export interface AppearancePreset {
   id: AppearanceId
@@ -13,20 +13,20 @@ const FONT_UI = 'Segoe UI, system-ui, -apple-system, sans-serif'
 export const APPEARANCE_PRESETS: AppearancePreset[] = [
   {
     id: 'midnight',
-    titleBar: { color: '#12141a', symbolColor: '#f0e8ea' },
+    titleBar: { color: '#0c0a0c', symbolColor: '#ffe8ea' },
     vars: {
-      '--bg': '#0b0d12',
-      '--surface': '#141820',
-      '--surface-elevated': '#1a1f2a',
-      '--border': '#2a303c',
-      '--text': '#ebe6e8',
-      '--muted': '#8b8790',
-      '--accent': '#e11d48',
-      '--accent-dim': '#e11d4820',
+      '--bg': '#07080c',
+      '--surface': '#101014',
+      '--surface-elevated': '#18181e',
+      '--border': '#4a2230',
+      '--text': '#f4f0f1',
+      '--muted': '#9a9096',
+      '--accent': '#ff2d3d',
+      '--accent-dim': '#ff2d3d28',
       '--green': '#3dd68c',
-      '--red': '#f43f5e',
-      '--shadow-sm': '0 0 14px #e11d4816',
-      '--shadow-md': '0 0 26px #e11d4822',
+      '--red': '#ff4d5e',
+      '--shadow-sm': '0 0 16px #ff2d3d1c',
+      '--shadow-md': '0 0 28px #ff2d3d2e',
       '--scrollbar-thumb': '#3a404c',
       '--scrollbar-thumb-hover': '#505868',
       '--font': FONT_UI,
@@ -262,8 +262,75 @@ export function isLightAppearance(id: AppearanceId | undefined): boolean {
   return LIGHT_IDS.has(resolveAppearance({ appearance: id }))
 }
 
-/** Apply full appearance pack to the document. */
-export function applyAppearance(id: AppearanceId | undefined): AppearancePreset {
+export const PALETTE_KEYS: PaletteKey[] = [
+  'bg',
+  'surface',
+  'surfaceElevated',
+  'border',
+  'text',
+  'muted',
+  'accent',
+  'green',
+  'red',
+]
+
+const PALETTE_VARS: Record<PaletteKey, string> = {
+  bg: '--bg',
+  surface: '--surface',
+  surfaceElevated: '--surface-elevated',
+  border: '--border',
+  text: '--text',
+  muted: '--muted',
+  accent: '--accent',
+  green: '--green',
+  red: '--red',
+}
+
+/** #rgb or #rrggbb → #rrggbb. */
+export function normalizeHex(raw: string): string | null {
+  const v = raw.trim().replace(/^#/, '')
+  if (/^[0-9a-fA-F]{3}$/.test(v)) {
+    return `#${v.split('').map((c) => c + c).join('').toLowerCase()}`
+  }
+  if (/^[0-9a-fA-F]{6}$/.test(v)) return `#${v.toLowerCase()}`
+  return null
+}
+
+export function effectivePalette(id: AppearanceId | undefined, custom?: CustomPalette | null): Record<PaletteKey, string> {
+  const preset = getAppearancePreset(id)
+  const out = {} as Record<PaletteKey, string>
+  for (const key of PALETTE_KEYS) {
+    const override = custom?.[key] ? normalizeHex(custom[key]!) : null
+    out[key] = override ?? preset.vars[PALETTE_VARS[key]] ?? '#000000'
+  }
+  return out
+}
+
+export function paletteIsCustom(custom?: CustomPalette | null): boolean {
+  if (!custom) return false
+  return PALETTE_KEYS.some((key) => custom[key] && normalizeHex(custom[key]!))
+}
+
+function applyPalette(root: HTMLElement, palette?: CustomPalette | null): void {
+  if (!palette) return
+  for (const key of PALETTE_KEYS) {
+    const hex = palette[key] ? normalizeHex(palette[key]!) : null
+    if (!hex) continue
+    root.style.setProperty(PALETTE_VARS[key], hex)
+  }
+  const accent = palette.accent ? normalizeHex(palette.accent) : null
+  if (accent) {
+    root.style.setProperty('--accent-dim', `${accent}28`)
+    root.style.setProperty('--shadow-sm', `0 0 16px ${accent}1c`)
+    root.style.setProperty('--shadow-md', `0 0 28px ${accent}2e`)
+  }
+}
+
+/** Apply full appearance pack to the document, then any user color overrides. */
+export function applyAppearance(
+  id: AppearanceId | undefined,
+  palette?: CustomPalette | null,
+): AppearancePreset {
   const preset = getAppearancePreset(id)
   const root = document.documentElement
   const isLight = LIGHT_IDS.has(preset.id)
@@ -275,8 +342,8 @@ export function applyAppearance(id: AppearanceId | undefined): AppearancePreset 
   for (const [key, value] of Object.entries(preset.vars)) {
     root.style.setProperty(key, value)
   }
+  applyPalette(root, palette)
 
-  // Force typography onto root + body (stylesheet :root defaults otherwise stick visually)
   const font = preset.vars['--font']
   const display = preset.vars['--font-display']
   if (font) {
@@ -285,7 +352,15 @@ export function applyAppearance(id: AppearanceId | undefined): AppearancePreset 
   }
   if (display) root.style.setProperty('--font-display', display)
 
-  return preset
+  if (!paletteIsCustom(palette)) return preset
+  const colors = effectivePalette(preset.id, palette)
+  return {
+    ...preset,
+    titleBar: {
+      color: colors.bg,
+      symbolColor: colors.text,
+    },
+  }
 }
 
 /** @deprecated */

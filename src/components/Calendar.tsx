@@ -29,6 +29,7 @@ import {
 } from '../lib/calendarPnl'
 
 import type { CalendarPnlDisplay } from '../types/account'
+import { SUPPORTED_LANGUAGES, type AppLanguage } from '../i18n/types'
 
 import type { Translations } from '../i18n/types'
 
@@ -59,6 +60,10 @@ interface CalendarProps {
   onDisplayModeChange: (mode: CalendarPnlDisplay) => void
 
   initialBalance: number
+
+  language?: AppLanguage
+
+  onLanguageChange?: (language: AppLanguage) => void
 
 }
 
@@ -158,6 +163,10 @@ export function Calendar({
 
   initialBalance,
 
+  language,
+
+  onLanguageChange,
+
 }: CalendarProps) {
 
   const weeks = buildWeekRows(month)
@@ -222,6 +231,20 @@ export function Calendar({
         </div>
 
         <div className="calendar-nav-meta">
+          {language && onLanguageChange && (
+            <select
+              className="calendar-lang"
+              aria-label="Idioma"
+              value={language}
+              onChange={(e) => onLanguageChange(e.target.value as AppLanguage)}
+            >
+              {SUPPORTED_LANGUAGES.map((opt) => (
+                <option key={opt.code} value={opt.code}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          )}
           {monthPnl.hasData && (
             <div className="calendar-month-total">
               <span className="calendar-month-total-label">{calendar.monthTotal}</span>

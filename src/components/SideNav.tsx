@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Translations } from '../i18n/types'
 
-export type MainTab = 'calendar' | 'day' | 'analytics' | 'exits' | 'projection' | 'sync' | 'settings'
+export type MainTab = 'calendar' | 'day' | 'analytics' | 'exits' | 'projection' | 'goals' | 'sync' | 'settings'
 
 interface Props {
   active: MainTab
@@ -68,6 +68,13 @@ const ICONS: Record<MainTab, ReactNode> = {
       <path d="M15 6h5v5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   ),
+  goals: (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="1" fill="currentColor" />
+    </svg>
+  ),
   sync: (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -100,6 +107,7 @@ const TABS: { id: MainTab; labelKey: keyof Translations['nav'] }[] = [
   { id: 'analytics', labelKey: 'analytics' },
   { id: 'exits', labelKey: 'exits' },
   { id: 'projection', labelKey: 'projection' },
+  { id: 'goals', labelKey: 'goals' },
   { id: 'sync', labelKey: 'sync' },
   { id: 'settings', labelKey: 'settings' },
 ]

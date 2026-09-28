@@ -17,13 +17,13 @@ function initAutoUpdater(getMainWindow, options = {}) {
   autoUpdater.on('checking-for-update', () => send({ state: 'checking' }))
   autoUpdater.on('update-not-available', () => send({ state: 'idle' }))
   autoUpdater.on('update-available', (info) =>
-    send({ state: 'available', version: info.version }),
+    send({ state: 'available', version: info.version, notes: releaseNotes(info) }),
   )
   autoUpdater.on('download-progress', (p) =>
     send({ state: 'downloading', percent: Math.round(p.percent) }),
   )
   autoUpdater.on('update-downloaded', (info) =>
-    send({ state: 'ready', version: info.version }),
+    send({ state: 'ready', version: info.version, notes: releaseNotes(info) }),
   )
   autoUpdater.on('error', (err) => send({ state: 'error', message: String(err.message) }))
 
@@ -47,6 +47,20 @@ function initAutoUpdater(getMainWindow, options = {}) {
     download: () => autoUpdater.downloadUpdate(),
     install: () => autoUpdater.quitAndInstall(false, true),
   }
+}
+
+function releaseNotes(info) {
+  const notes = info?.releaseNotes
+  if (!notes) return ''
+  if (typeof notes === 'string') return notes.trim()
+  if (Array.isArray(notes)) {
+    return notes
+      .map((item) => (typeof item === 'string' ? item : item?.note || ''))
+      .filter(Boolean)
+      .join('\n\n')
+      .trim()
+  }
+  return ''
 }
 
 module.exports = { initAutoUpdater }

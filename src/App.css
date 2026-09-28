@@ -1,18 +1,18 @@
 :root,
 [data-theme=dark]{
 --titlebar-inset:0px;
---bg:#0d1117;
---surface:#161b22;
---surface-elevated:#1a212b;
---border:#30363d;
---text:#e6edf3;
---muted:#8b949e;
---accent:#58a6ff;
---accent-dim:#58a6ff1f;
---green:#3fb950;
---red:#f85149;
---shadow-sm:0 2px 12px #00000028;
---shadow-md:0 4px 24px #00000035;
+--bg:#07080c;
+--surface:#101014;
+--surface-elevated:#18181e;
+--border:#4a2230;
+--text:#f4f0f1;
+--muted:#9a9096;
+--accent:#ff2d3d;
+--accent-dim:#ff2d3d28;
+--green:#3dd68c;
+--red:#ff4d5e;
+--shadow-sm:0 0 16px #ff2d3d1c;
+--shadow-md:0 0 28px #ff2d3d2e;
 --radius-lg:14px;
 --radius-md:11px;
 --scrollbar-size:6px;
@@ -258,14 +258,16 @@ line-height:1.25}
 .app-shell-home .content-scroll>.home-right-panel{
 flex:1 1 0;
 min-height:0;
-overflow:hidden;
+overflow:auto;
 display:grid;
-gap:.4rem;
+gap:.65rem;
 align-content:stretch}
 .app-shell-home .home-right-panel[data-sections='3']{
-grid-template-rows:minmax(0,1fr) minmax(0,1.15fr) minmax(0,1.15fr)}
+grid-template-rows:auto auto auto;
+align-content:start}
 .app-shell-home .home-right-panel[data-sections='2']{
-grid-template-rows:minmax(0,1fr) minmax(0,1.2fr)}
+grid-template-rows:auto auto;
+align-content:start}
 .app-shell-home .home-right-panel[data-sections='1']{
 grid-template-rows:minmax(0,1fr)}
 .app-shell-home .home-right-panel>.day-hero,
@@ -282,16 +284,32 @@ height:100%;
 justify-content:center}
 .app-shell-home .home-right-panel .day-hero-chart{
 display:none}
+.app-shell-home.home-side-open .content-scroll{
+overflow:auto;
+display:block}
+.home-day-line{
+display:flex;
+align-items:baseline;
+justify-content:space-between;
+gap:.75rem;
+padding:.15rem .1rem .05rem}
+.home-day-line-date{
+font-size:.95rem;
+font-weight:700}
+.home-day-line-pnl{
+font-size:1.15rem;
+font-weight:800;
+font-variant-numeric:tabular-nums}
 .app-shell-home .home-progress-section{
 margin:0;
-padding:.45rem .5rem .5rem;
+padding:.55rem .65rem .6rem;
 border:1px solid color-mix(in srgb,var(--accent) 32%,var(--border));
 box-shadow:0 0 14px color-mix(in srgb,var(--accent) 10%,transparent);
 background:color-mix(in srgb,var(--surface) 92%,var(--bg));
 display:flex;
 flex-direction:column;
-gap:.3rem;
-height:100%}
+gap:.45rem;
+height:auto}
 .app-shell-home .home-progress-section h3{
 margin:0;
 flex:0 0 auto;
@@ -301,32 +319,21 @@ letter-spacing:.04em;
 text-transform:uppercase;
 color:var(--muted)}
 .app-shell-home .home-goals-body{
-flex:1 1 0;
-min-height:0;
-min-width:0;
-display:grid;
-grid-template-columns:minmax(0,1fr) auto;
-gap:.4rem .55rem;
-align-items:stretch}
+flex:0 0 auto;
+min-width:0}
 .app-shell-home .home-goals-list{
 display:flex;
 flex-direction:column;
-gap:.3rem;
-min-width:0;
-min-height:0;
-overflow:hidden;
-justify-content:space-evenly}
+gap:.4rem;
+min-width:0}
 .app-shell-home .home-goal-row{
 display:flex;
 flex-direction:column;
-gap:.12rem;
-padding:.35rem .4rem;
+gap:.22rem;
+padding:.5rem .65rem .45rem;
 border-radius:8px;
 background:var(--bg);
-border:1px solid color-mix(in srgb,var(--border) 70%,transparent);
-flex:1 1 0;
-min-height:0;
-justify-content:center}
+border:1px solid color-mix(in srgb,var(--border) 70%,transparent)}
 .app-shell-home .home-goal-row-head{
 display:flex;
 justify-content:space-between;
@@ -336,22 +343,25 @@ gap:.35rem}
 font-size:.74rem;
 font-weight:600}
 .app-shell-home .home-goal-pct{
-font-size:.76rem;
+font-size:.92rem;
 font-weight:800;
 font-variant-numeric:tabular-nums}
 .app-shell-home .home-goal-amt{
-font-size:.7rem;
-color:var(--muted);
+font-size:.72rem;
 font-variant-numeric:tabular-nums}
 .app-shell-home .home-goal-bar{
 height:6px;
-margin:0;
-flex:0 0 auto}
+margin:0}
 .app-shell-home .home-goals-section .monthly-goal-gauge{
-width:clamp(4.5rem,22%,6.75rem);
-height:clamp(4.5rem,22%,6.75rem);
+width:5.5rem;
+height:5.5rem;
 align-self:center;
-max-height:100%}
+justify-self:center;
+max-height:none}
+.app-shell-home .home-goals-section .monthly-goal-gauge-pct{
+font-size:.95rem}
+.app-shell-home .home-goals-section .monthly-goal-gauge-amt{
+display:none}
 .app-shell-home .home-rules-section .risk-rules-summary{
 flex:1 1 0;
 min-height:0;
@@ -437,10 +447,10 @@ flex:0 0 auto}
 
 @media (max-width:1280px){
 .app-shell-home .home-goals-body{
-grid-template-columns:minmax(0,1fr) auto}
+grid-template-columns:minmax(0,1fr) 5rem}
 .app-shell-home .home-goals-section .monthly-goal-gauge{
-width:clamp(4rem,18%,5.75rem);
-height:clamp(4rem,18%,5.75rem)}
+width:4.75rem;
+height:4.75rem}
 }
 @media (max-width:1100px){
 .app-shell-home .home-goals-body{
@@ -644,7 +654,17 @@ overflow:auto}
 flex-shrink:0;
 margin-top:.35rem;
 padding-top:.45rem;
-border-top:1px solid color-mix(in srgb,var(--border) 70%,transparent)}
+border-top:1px solid color-mix(in srgb,var(--border) 70%,transparent);
+display:flex;
+flex-direction:column;
+gap:.35rem}
+.nav-app-version{
+display:block;
+text-align:center;
+font-size:.68rem;
+font-weight:650;
+letter-spacing:.04em;
+color:var(--muted)}
 .mt5-status-btn{
 width:100%;
 display:flex;
@@ -1487,6 +1507,15 @@ flex:0 0 auto}
 .calendar-nav-btn:hover{
 border-color:color-mix(in srgb,var(--accent) 45%,var(--border));
 background:color-mix(in srgb,var(--accent) 10%,var(--bg))}
+.calendar-lang{
+background:var(--bg);
+color:var(--text);
+border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));
+border-radius:8px;
+height:28px;
+padding:0 .55rem;
+font-size:.75rem;
+font-family:inherit}
 .calendar-title{
 font-size:1.35rem;
 font-weight:800;
@@ -2282,6 +2311,20 @@ background:var(--accent-dim);
 box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
 .tab-panel-day{
 animation:tabFadeIn .18s ease}
+.day-goal-progress{margin:0 0 .75rem}
+.day-goal-progress h3{margin:0 0 .2rem}
+.day-goal-progress .hint-inline{margin:0 0 .55rem}
+.day-goal-list{display:flex;flex-direction:column;gap:.45rem}
+.day-goal-plans-title{margin:.35rem 0 0;font-size:.78rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}
+.day-goal-row{display:flex;flex-direction:column;gap:.15rem;padding:.4rem .5rem;border-radius:8px;background:var(--bg);border:1px solid color-mix(in srgb,var(--border) 70%,transparent)}
+.day-goal-head{display:flex;justify-content:space-between;align-items:center;gap:.45rem}
+.day-goal-state{font-size:.62rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:.12rem .42rem;border:1px solid var(--border);white-space:nowrap}
+.day-goal-state.on{color:var(--green);border-color:color-mix(in srgb,var(--green) 45%,var(--border))}
+.day-goal-state.off{color:var(--muted)}
+.day-goal-name{font-size:.78rem;font-weight:600}
+.day-goal-pct{font-size:.82rem;font-weight:800;font-variant-numeric:tabular-nums}
+.day-goal-amt{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.day-goal-bar{height:6px;margin:0}
 .day-grid-clean{
 grid-template-columns:1fr;
 gap:.65rem}
@@ -2826,9 +2869,10 @@ text-align:center;
 padding:.35rem;
 pointer-events:none}
 .monthly-goal-gauge-caption{
-font-size:.55rem;
-text-transform:uppercase;
-letter-spacing:.04em;
+font-size:.58rem;
+text-transform:none;
+letter-spacing:0;
+line-height:1.15;
 color:var(--muted)}
 .monthly-goal-gauge-pct{
 font-size:1.05rem;
@@ -2843,14 +2887,38 @@ color:var(--muted)}
 .settings-goal-field{
 display:flex;
 flex-direction:column;
-gap:.25rem}
+gap:.3rem;
+min-width:0}
 .settings-goal-field-label{
 font-size:.72rem;
 color:var(--muted)}
-.settings-goal-live{
-font-size:.72rem;
-font-weight:700;
-font-variant-numeric:tabular-nums}
+.settings-risk-head{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+gap:1rem}
+.settings-risk-head h3{margin:0}
+.settings-risk-status{
+display:flex;
+flex-direction:column;
+align-items:flex-end;
+gap:.15rem;
+flex:0 0 auto;
+text-align:right}
+.settings-risk-status-label{
+font-size:.68rem;
+color:var(--muted)}
+.settings-risk-status-note{
+font-size:.68rem;
+color:var(--muted)}
+.settings-risk-section .risk-rules-summary-cards{
+display:grid;
+grid-template-columns:repeat(3,minmax(0,1fr));
+gap:.55rem}
+.settings-risk-section .risk-summary-card{
+grid-template-columns:minmax(0,1fr);
+align-items:stretch}
+.settings-risk-section .risk-summary-pct{display:none}
 .risk-rules-summary{
 margin-top:.35rem}
 .risk-rules-summary-cards{
@@ -2899,7 +2967,7 @@ padding-top:.65rem;
 border-top:1px solid color-mix(in srgb,var(--border) 65%,transparent)}
 .appearance-grid{
 display:grid;
-grid-template-columns:repeat(4,minmax(0,1fr));
+grid-template-columns:repeat(5,minmax(0,1fr));
 gap:.45rem;
 margin-top:.35rem}
 .settings-page-head{
@@ -2950,6 +3018,25 @@ border-radius:999px;
 box-shadow:0 0 8px currentColor}
 .appearance-card-label{font-size:.78rem;font-weight:600;line-height:1.2}
 .appearance-more-btn{margin-top:.45rem}
+.palette-editor-block{margin-top:.9rem;padding-top:.75rem;border-top:1px solid color-mix(in srgb,var(--border) 70%,transparent)}
+.palette-editor-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.palette-editor-head h4{margin:0;font-size:.92rem}
+.palette-editor{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;margin-top:.55rem}
+.palette-field{display:flex;align-items:center;gap:.45rem;min-width:0;padding:.4rem .5rem;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
+.palette-field input[type=color]{width:32px;height:32px;padding:0;border:1px solid var(--border);border-radius:6px;background:transparent;cursor:pointer;flex:0 0 auto}
+.palette-field-copy{display:flex;flex-direction:column;gap:.1rem;min-width:0;flex:1}
+.palette-field-label{font-size:.72rem;color:var(--muted);line-height:1.2}
+.palette-hex{width:100%;min-width:0;background:transparent;border:none;color:var(--text);font:inherit;font-size:.78rem;font-variant-numeric:tabular-nums;padding:0}
+.palette-hex:focus{outline:none}
+@media(max-width:900px){
+.palette-editor{grid-template-columns:1fr 1fr}
+}
+[data-theme=midnight] .panel,
+[data-theme=midnight] .nav-rail,
+[data-theme=midnight] .calendar-col,
+[data-theme=midnight] .account-stats-bar{
+border-color:color-mix(in srgb,var(--accent) 42%,#1a1014);
+box-shadow:0 0 18px color-mix(in srgb,var(--accent) 14%,transparent)}
 [data-theme=midnight] .nav-rail-btn.active,
 [data-theme=crimson] .nav-rail-btn.active{
 box-shadow:0 0 18px color-mix(in srgb,var(--accent) 35%,transparent)}
@@ -3505,6 +3592,9 @@ height:112px}
 .welcome-step p{margin:.15rem 0 0;font-size:.82rem;color:var(--muted)}
 .welcome-backdrop{z-index:200}
 .update-banner{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.55rem .85rem;border-radius:8px;margin-bottom:.75rem;background:var(--accent-dim);border:1px solid color-mix(in srgb,var(--accent) 45%,transparent);font-size:.82rem}
+.update-banner-notes{align-items:flex-start}
+.update-banner-copy{min-width:0;display:flex;flex-direction:column;gap:.35rem}
+.update-notes{margin:0;max-height:9rem;overflow:auto;white-space:pre-wrap;font:inherit;font-size:.75rem;line-height:1.4;color:var(--text)}
 .update-banner.ready{background:color-mix(in srgb,var(--green) 12%,var(--surface));border-color:color-mix(in srgb,var(--green) 45%,transparent)}
 .update-banner.warn{background:color-mix(in srgb,var(--red) 12%,var(--surface));border-color:color-mix(in srgb,var(--red) 40%,transparent)}
 .btn-sm{padding:.35rem .65rem;font-size:.78rem}
@@ -3576,5 +3666,39 @@ height:112px}
 .proj-cal-pnl{font-size:.62rem;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
 @media(max-width:1100px){
 .proj-cal-months{grid-template-columns:1fr}
+}
+.goal-plan-panel{display:flex;flex-direction:column;gap:.85rem}
+.goal-plan-intro h2{margin:0 0 .35rem;font-size:1.15rem}
+.goal-plan-switch{display:flex;flex-wrap:wrap;gap:.4rem}
+.goal-plan-chip{background:var(--bg);border:1px solid var(--border);border-radius:999px;color:var(--text);padding:.35rem .7rem;font-size:.78rem;cursor:pointer}
+.goal-plan-chip.active{border-color:var(--accent);background:var(--accent-dim);color:var(--accent)}
+.goal-plan-chip.add{border-style:dashed}
+.goal-plan-layout{display:grid;grid-template-columns:1fr;gap:.85rem;align-items:start;min-width:0}
+.goal-plan-layout>.panel{min-width:0}
+.journal-form-grid{min-width:0}
+.journal-form-grid input:not([type=checkbox]),.journal-form-grid textarea,.journal-form-grid select{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+.goal-plan-subhead{margin:1rem 0 .65rem}
+.journal-form-grid label.goal-plan-check{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:.55rem;font-size:.82rem;color:var(--text);line-height:1.35}
+.journal-form-grid label.goal-plan-check input{width:1rem;height:1rem;min-width:1rem;max-width:1rem;flex:0 0 auto;margin:0;padding:0;border:0;border-radius:0;background:transparent;accent-color:var(--accent)}
+.journal-form-grid label.goal-plan-check span{flex:0 1 auto;text-align:left}
+.goal-plan-result .panel-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:.45rem .75rem;margin-bottom:.45rem}
+.goal-plan-result .panel-head h3{margin:0;flex:1 1 12rem}
+.goal-plan-pace{font-size:.72rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;border-radius:999px;padding:.2rem .55rem;border:1px solid var(--border);flex:0 0 auto;white-space:nowrap}
+.goal-plan-pace.positive{color:var(--green);border-color:color-mix(in srgb,var(--green) 45%,var(--border))}
+.goal-plan-pace.negative{color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,var(--border))}
+.goal-plan-pace.neutral{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,var(--border))}
+.goal-plan-summary{margin:.15rem 0 .55rem;font-size:.9rem;line-height:1.45}
+.goal-plan-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin:.7rem 0 .55rem}
+.goal-plan-stats .projection-stat{min-width:0}
+.goal-plan-stats .label,.goal-plan-stats .val,.goal-plan-stats .sub{overflow-wrap:anywhere}
+.goal-plan-stats .val{display:block;margin-top:.12rem}
+.goal-plan-stats .sub{display:block;font-size:.72rem;color:var(--muted);margin-top:.2rem;line-height:1.35}
+.goal-plan-pct{margin:.4rem 0 0}
+.goal-plan-strategy{margin:0 0 .65rem;padding:.7rem .8rem;background:var(--bg);border-radius:8px;white-space:pre-wrap}
+.goal-plan-rules{margin:0;padding-left:1.1rem;font-size:.88rem}
+.goal-plan-rules li{margin:.3rem 0}
+.goal-plan-panel .btn-primary:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:900px){
+.goal-plan-layout{grid-template-columns:1fr}
 }
 

@@ -1,12 +1,14 @@
 import type { Locale } from 'date-fns'
 import type { DayActivity } from '../types/account'
+import type { GoalPlan } from '../types/goalPlan'
+import { DayGoalProgress } from './DayGoalProgress'
 import type { EquityPoint, ThresholdRuleState } from '../types/journal'
 import type { ProfitGoalState } from '../lib/profitGoals'
-import { PROFIT_GOAL_LABEL_KEYS } from '../lib/profitGoals'
 import { formatMoney, pnlClass } from '../lib/aggregations'
+import { formatDisplayDate } from '../lib/dateDisplay'
+import { parseLocalDateKey } from '../lib/mt5Date'
 import type { Translations } from '../i18n/types'
-import { DayHero } from './DayHero'
-import { MonthlyGoalGauge, RiskRulesSummary } from './OptionsProgress'
+import { RiskRulesSummary } from './OptionsProgress'
 
 interface Props {
   selectedDate: string
@@ -18,7 +20,10 @@ interface Props {
   dateFormat: string
   dateLocale: Locale
   subtitle?: string
+  dayMap: Map<string, DayActivity>
   profitGoals: ProfitGoalState[]
+  goalPlans?: GoalPlan[]
+  tPlan?: Translations['goalPlan']
   thresholdRules: ThresholdRuleState[]
   showGoals: boolean
   showRules: boolean
@@ -29,86 +34,42 @@ interface Props {
   rulesTitle: string
 }
 
-/** Home right column: PnL+equity, Metas, Reglas — share height evenly. */
+/** Calendar side: which day is selected, plus month goals and rules. The trade list lives in Diario. */
 export function HomeRightPanel({
   selectedDate,
   selectedDay,
-  dayTradeCount,
-  dayWinRate,
-  displayBalance,
-  equityPoints,
   dateFormat,
   dateLocale,
-  subtitle,
+  dayMap,
   profitGoals,
+  goalPlans,
+  tPlan,
   thresholdRules,
-  showGoals,
   showRules,
-  tHero,
   tGoals,
   tThresholds,
-  goalsTitle,
   rulesTitle,
 }: Props) {
-  const activeGoals = showGoals ? profitGoals.filter((g) => g.status !== 'off') : []
-  const monthlyGoal = activeGoals.find((g) => g.id === 'monthly')
   const showRulesBlock = showRules && thresholdRules.some((r) => r.status !== 'off')
-  const sectionCount =
-    1 + (activeGoals.length > 0 ? 1 : 0) + (showRulesBlock ? 1 : 0)
+  const pnl = selectedDay?.pnl ?? 0
 
   return (
-    <div
-      className="home-right-panel"
-      data-sections={sectionCount}
-    >
-      <DayHero
-        selectedDate={selectedDate}
-        selectedDay={selectedDay}
-        dayTradeCount={dayTradeCount}
-        dayWinRate={dayWinRate}
-        displayBalance={displayBalance}
-        equityPoints={equityPoints}
-        dateFormat={dateFormat}
-        dateLocale={dateLocale}
-        subtitle={subtitle}
-        showChart={false}
-        showRecentSummary={false}
-        t={tHero}
-      />
+    <div className="home-right-panel" data-sections={showRulesBlock ? '3' : '2'}>
+      <div className="home-day-line">
+        <span className="home-day-line-date">
+          {formatDisplayDate(parseLocalDateKey(selectedDate), dateFormat, dateLocale)}
+        </span>
+        <span className={`home-day-line-pnl ${pnlClass(pnl)}`}>{formatMoney(pnl)}</span>
+      </div>
 
-      {activeGoals.length > 0 && (
-        <section className="panel home-progress-section home-goals-section">
-          <h3>{goalsTitle}</h3>
-          <div className="home-goals-body">
-            <div className="home-goals-list">
-              {activeGoals.map((goal) => (
-                <div key={goal.id} className={`home-goal-row home-goal-${goal.status}`}>
-                  <div className="home-goal-row-head">
-                    <span className="home-goal-name">
-                      {tGoals[PROFIT_GOAL_LABEL_KEYS[goal.id]]}
-                    </span>
-                    <span className={`home-goal-pct ${pnlClass(goal.current)}`}>
-                      {goal.pct.toFixed(0)}%
-                    </span>
-                  </div>
-                  <span className={`home-goal-amt ${pnlClass(goal.current)}`}>
-                    {formatMoney(goal.current)} / {formatMoney(goal.goal)}
-                  </span>
-                  <div className="goal-bar home-goal-bar">
-                    <div
-                      className={`goal-fill ${goal.status === 'reached' ? 'positive' : pnlClass(goal.current)}`}
-                      style={{ width: `${Math.min(100, goal.pct)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            {monthlyGoal && (
-              <MonthlyGoalGauge goal={monthlyGoal} label={tGoals.gaugeMonthly} />
-            )}
-          </div>
-        </section>
-      )}
+      <DayGoalProgress
+        goals={profitGoals}
+        plans={goalPlans}
+        dayMap={dayMap}
+        selectedDate={selectedDate}
+        t={tGoals}
+        tPlan={tPlan}
+      />
 
       {showRulesBlock && (
         <section className="panel home-progress-section home-rules-section">

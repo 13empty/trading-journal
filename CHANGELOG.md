@@ -7,6 +7,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.11] — 2026-09-28
+
+### Added / Añadido
+
+- **ES:** La versión se ve en la barra lateral. Al abrir, la app mira la última release de GitHub y, si hay una más nueva, avisa con el registro de cambios.  
+  **EN:** The version is shown in the sidebar. On launch the app checks the latest GitHub release and, if a newer one exists, shows a notice with the changelog.
+- **ES:** Pestaña Metas: plan con monto diario, fechas, estrategia y reglas. El progreso del día, la semana y el mes, y los planes guardados, se ven en Calendario y Diario.  
+  **EN:** Goals tab: a plan with a daily amount, dates, strategy and rules. Day, week and month progress, plus saved plans, show on Calendar and Journal.
+- **ES:** Paleta de colores editable encima del pack de apariencia.  
+  **EN:** Editable color palette on top of the appearance pack.
+
+### Changed / Cambiado
+
+- **ES:** El pack Carbón usa el acento rojo. Los checks del plan quedan junto a su texto.  
+  **EN:** The Carbón pack uses the red accent. Plan checkboxes sit next to their labels.
+
+---
+
 ## [1.2.10] — 2026-09-24
 
 ### Added / Añadido
