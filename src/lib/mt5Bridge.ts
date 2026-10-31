@@ -2,6 +2,58 @@ import type { CashMovement, Mt5OpenPosition } from '../types/account'
 import type { Trade } from '../types/trade'
 
 export const BRIDGE_URL = 'http://127.0.0.1:3847'
+export const BRIDGE_TOKEN_HEADER = 'X-TJ-Token'
+
+let cachedToken: string | null = null
+let tokenLoad: Promise<string | null> | null = null
+
+export function resetBridgeTokenCache() {
+  cachedToken = null
+  tokenLoad = null
+}
+
+/** Electron preload, or the same-origin dev endpoint. Never call the open bridge for this. */
+export function loadBridgeToken(): Promise<string | null> {
+  if (cachedToken) return Promise.resolve(cachedToken)
+  if (!tokenLoad) {
+    tokenLoad = (async () => {
+      try {
+        const fromDesktop = await window.desktop?.getBridgeToken?.()
+        if (fromDesktop) return fromDesktop
+      } catch {
+        /* browser dev has no preload */
+      }
+      try {
+        const res = await fetch('/__tj/bridge-token', {
+          signal: AbortSignal.timeout(2000),
+          cache: 'no-store',
+        })
+        if (!res.ok) return null
+        const data = (await res.json()) as { token?: string }
+        return data.token || null
+      } catch {
+        return null
+      }
+    })().then((token) => {
+      tokenLoad = null
+      if (token) cachedToken = token
+      return token
+    })
+  }
+  return tokenLoad
+}
+
+export async function bridgeFetch(path: string, init: RequestInit = {}, allowRetry = true): Promise<Response> {
+  const token = await loadBridgeToken()
+  const headers = new Headers(init.headers)
+  if (token) headers.set(BRIDGE_TOKEN_HEADER, token)
+  const res = await fetch(`${BRIDGE_URL}${path}`, { ...init, headers })
+  if (res.status === 401 && allowRetry) {
+    resetBridgeTokenCache()
+    return bridgeFetch(path, init, false)
+  }
+  return res
+}
 
 export interface Mt5Status {
   connected: boolean
@@ -28,7 +80,7 @@ export interface Mt5SyncPayload {
 
 export async function fetchMt5Status(): Promise<Mt5Status | null> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/status`, { signal: AbortSignal.timeout(3000) })
+    const res = await bridgeFetch('/api/status', { signal: AbortSignal.timeout(3000) })
     if (!res.ok) return null
     const data = await res.json()
     return {
@@ -46,7 +98,7 @@ export async function fetchMt5Status(): Promise<Mt5Status | null> {
 
 export async function reloadBridgeFromDisk(): Promise<boolean> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/reload`, {
+    const res = await bridgeFetch('/api/reload', {
       method: 'POST',
       signal: AbortSignal.timeout(5000),
     })
@@ -78,7 +130,7 @@ export interface CloseAllCommandResult {
 /** Ask the local bridge to queue a close-all for the Python MT5 agent. */
 export async function requestCloseAllPositions(reason = 'day_rule'): Promise<CloseAllResult> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/close-all`, {
+    const res = await bridgeFetch('/api/close-all', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason }),
@@ -109,7 +161,7 @@ export async function waitForCloseAllResult(
   const started = Date.now()
   while (Date.now() - started < timeoutMs) {
     try {
-      const res = await fetch(`${BRIDGE_URL}/api/command/result`, {
+      const res = await bridgeFetch('/api/command/result', {
         signal: AbortSignal.timeout(4000),
       })
       if (res.ok) {
@@ -134,7 +186,7 @@ export async function waitForCloseAllResult(
 
 export async function fetchMt5Sync(): Promise<Mt5SyncPayload | null> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/sync`, { signal: AbortSignal.timeout(15000) })
+    const res = await bridgeFetch('/api/sync', { signal: AbortSignal.timeout(15000) })
     if (!res.ok) return null
     return (await res.json()) as Mt5SyncPayload
   } catch {
@@ -149,10 +201,17 @@ export function connectMt5WebSocket(
   let ws: WebSocket | null = null
   let closed = false
 
-  const connect = () => {
+  const connect = async () => {
     if (closed) return
+    const token = await loadBridgeToken()
+    if (closed) return
+    if (!token) {
+      onStatus?.(false)
+      setTimeout(connect, 3000)
+      return
+    }
     try {
-      ws = new WebSocket(`ws://127.0.0.1:3847`)
+      ws = new WebSocket(`ws://127.0.0.1:3847/?token=${encodeURIComponent(token)}`)
       ws.onopen = () => onStatus?.(true)
       ws.onmessage = (ev) => {
         try {
@@ -178,6 +237,7 @@ export function connectMt5WebSocket(
       }
       ws.onclose = () => {
         onStatus?.(false)
+        resetBridgeTokenCache()
         if (!closed) setTimeout(connect, 3000)
       }
       ws.onerror = () => ws?.close()

@@ -14,6 +14,8 @@ from typing import Any
 
 import requests
 
+from bridge_auth import bridge_request
+
 # Windows (cp932, etc.): evitar crash al imprimir
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -44,11 +46,24 @@ def start_of_today() -> datetime:
 
 seen_position_ids: set[int] = set()
 seen_balance_keys: set[str] = set()
+_auth_warned = False
 
 
 def post(event: dict[str, Any]) -> bool:
+    global _auth_warned
     try:
-        r = requests.post(BRIDGE_URL, json=event, timeout=10)
+        r = bridge_request("POST", BRIDGE_URL, json=event, timeout=10)
+        if r.status_code == 401:
+            if not _auth_warned:
+                print(
+                    "El puente rechazo la peticion (401). "
+                    "Arranca la app o `npm run bridge` para generar el token "
+                    "(TJ_BRIDGE_TOKEN o bridge/bridge-token).",
+                    flush=True,
+                )
+                _auth_warned = True
+            return False
+        _auth_warned = False
         return r.status_code == 200
     except requests.RequestException as e:
         print(f"Puente no disponible: {e}  (ejecuta: npm run bridge)")
@@ -733,7 +748,7 @@ def close_all_positions() -> dict[str, Any]:
 def poll_bridge_commands() -> None:
     """Execute pending bridge commands (close_all from day rules)."""
     try:
-        r = requests.get(f"{BRIDGE_BASE}/api/command", timeout=3)
+        r = bridge_request("GET", f"{BRIDGE_BASE}/api/command", timeout=3)
         if r.status_code != 200:
             return
         cmd = r.json()
@@ -750,7 +765,8 @@ def poll_bridge_commands() -> None:
         result["commandId"] = cmd.get("id")
         result["reason"] = cmd.get("reason")
         try:
-            requests.post(
+            bridge_request(
+                "POST",
                 f"{BRIDGE_BASE}/api/command/result",
                 json=result,
                 timeout=5,

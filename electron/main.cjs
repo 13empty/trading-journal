@@ -25,6 +25,8 @@ let mt5RestartPending = false
 let mt5SyncProc = null
 let mt5StopRestart = false
 let appUpdater = null
+/** Per-launch secret for the local bridge. Empty until startBridge resolves it. */
+let bridgeToken = ''
 const children = []
 /** @type {Map<string, import('electron').BrowserWindow>} */
 const viewWindows = new Map()
@@ -155,6 +157,7 @@ function runPythonScript(scriptPath, timeoutMs = 180_000) {
       env: {
         ...process.env,
         TJ_BRIDGE_DIR: bridgeDataDir(),
+        TJ_BRIDGE_TOKEN: process.env.TJ_BRIDGE_TOKEN || bridgeToken,
         TJ_MT5_SERVER_OFFSET_HOURS: getMt5OffsetHours(),
         PYTHONIOENCODING: 'utf-8',
         PYTHONUTF8: '1',
@@ -198,6 +201,8 @@ function registerDesktopIpc() {
       new Notification({ title, body }).show()
     }
   })
+
+  ipcMain.handle('desktop:bridge-token', () => bridgeToken || '')
 
   ipcMain.handle('desktop:info', () => ({
     isElectron: true,
@@ -483,12 +488,72 @@ function createSplash() {
   splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
 }
 
+function bridgeAuthHeaders() {
+  return bridgeToken ? { 'X-TJ-Token': bridgeToken } : {}
+}
+
+async function loadBridgeAuth() {
+  const authPath = path.join(unpackedPath('bridge'), 'auth.mjs')
+  return import(pathToFileURL(authPath).href)
+}
+
+function bridgeStatusCode(token) {
+  return new Promise((resolve) => {
+    const req = http.get(
+      {
+        hostname: '127.0.0.1',
+        port: BRIDGE_PORT,
+        path: '/api/status',
+        headers: token ? { 'X-TJ-Token': token } : {},
+      },
+      (res) => {
+        res.resume()
+        resolve(res.statusCode || 0)
+      },
+    )
+    req.on('error', () => resolve(0))
+    req.setTimeout(1500, () => {
+      req.destroy()
+      resolve(0)
+    })
+  })
+}
+
+/** When another process already owns port 3847, reuse the token it published. */
+async function discoverRunningToken(auth) {
+  const files = [
+    path.join(bridgeDataDir(), auth.TOKEN_FILE_NAME),
+    path.join(appRoot(), 'bridge', auth.TOKEN_FILE_NAME),
+    path.join(unpackedPath('bridge'), auth.TOKEN_FILE_NAME),
+  ]
+  const tokens = []
+  const fromEnv = String(process.env.TJ_BRIDGE_TOKEN || '').trim()
+  if (fromEnv) tokens.push(fromEnv)
+  for (const file of files) {
+    const token = auth.readTokenFile(file)
+    if (token && !tokens.includes(token)) tokens.push(token)
+  }
+  for (const token of tokens) {
+    if ((await bridgeStatusCode(token)) === 200) return token
+  }
+  return ''
+}
+
 async function startBridge() {
-  process.env.TJ_BRIDGE_DIR = bridgeDataDir()
+  const dataDir = bridgeDataDir()
+  process.env.TJ_BRIDGE_DIR = dataDir
   process.env.TJ_BRIDGE_PORT = String(BRIDGE_PORT)
+  const auth = await loadBridgeAuth()
 
   try {
     await waitForHttp(`http://127.0.0.1:${BRIDGE_PORT}/api/status`, 2000)
+    bridgeToken = await discoverRunningToken(auth)
+    if (bridgeToken) process.env.TJ_BRIDGE_TOKEN = bridgeToken
+    else {
+      console.error(
+        '[bridge] Puerto en uso, pero no hay un token que el puente acepte. Cierra el otro proceso y abre la app de nuevo.',
+      )
+    }
     console.log('[bridge] Reusing existing bridge on port', BRIDGE_PORT)
     bridgeClose = null
     return { port: BRIDGE_PORT, close: async () => {} }
@@ -501,8 +566,12 @@ async function startBridge() {
     throw new Error(`No se encuentra el puente: ${serverPath}`)
   }
 
+  bridgeToken = auth.generateToken()
+  process.env.TJ_BRIDGE_TOKEN = bridgeToken
   const mod = await import(pathToFileURL(serverPath).href)
-  const handle = await mod.startBridge({ port: BRIDGE_PORT })
+  const handle = await mod.startBridge({ port: BRIDGE_PORT, token: bridgeToken, dataDir })
+  bridgeToken = handle.token || bridgeToken
+  process.env.TJ_BRIDGE_TOKEN = bridgeToken
   bridgeClose = handle.close
   return handle
 }
@@ -619,6 +688,7 @@ function startMt5Sync() {
     shell: false,
     env: {
       ...process.env,
+      TJ_BRIDGE_TOKEN: process.env.TJ_BRIDGE_TOKEN || bridgeToken,
       TJ_MT5_SERVER_OFFSET_HOURS: getMt5OffsetHours(),
       PYTHONIOENCODING: 'utf-8',
       PYTHONUTF8: '1',
@@ -670,20 +740,28 @@ function startMt5Sync() {
 function watchMt5Connection() {
   setInterval(() => {
     const mt5Running = children.some((p) => p && !p.killed && p.exitCode == null)
-    const req = http.get(`http://127.0.0.1:${BRIDGE_PORT}/api/status`, (res) => {
-      let body = ''
-      res.on('data', (c) => {
-        body += c
-      })
-      res.on('end', () => {
-        try {
-          const s = JSON.parse(body)
-          if (!s.connected && !mt5Running) scheduleMt5Restart('sin heartbeat MT5')
-        } catch {
-          /* ignore */
-        }
-      })
-    })
+    const req = http.get(
+      {
+        hostname: '127.0.0.1',
+        port: BRIDGE_PORT,
+        path: '/api/status',
+        headers: bridgeAuthHeaders(),
+      },
+      (res) => {
+        let body = ''
+        res.on('data', (c) => {
+          body += c
+        })
+        res.on('end', () => {
+          try {
+            const s = JSON.parse(body)
+            if (!s.connected && !mt5Running) scheduleMt5Restart('sin heartbeat MT5')
+          } catch {
+            /* ignore */
+          }
+        })
+      },
+    )
     req.on('error', () => {})
     req.setTimeout(2000, () => req.destroy())
   }, 20000)
@@ -735,11 +813,11 @@ function startStaticServer(distDir) {
   })
 }
 
-function waitForHttp(url, timeoutMs = 60000) {
+function waitForHttp(url, timeoutMs = 60000, headers = {}) {
   return new Promise((resolve, reject) => {
     const start = Date.now()
     const tryOnce = () => {
-      const req = http.get(url, (res) => {
+      const req = http.get(url, { headers }, (res) => {
         res.resume()
         if (res.statusCode && res.statusCode >= 200 && res.statusCode < 500) resolve()
         else retry()
@@ -778,7 +856,7 @@ async function bootServices() {
   applyRuntimeConfigAtBoot()
   setSplashStatus('Puente MT5 (puerto 3847)...')
   await startBridge()
-  await waitForHttp(`http://127.0.0.1:${BRIDGE_PORT}/api/status`, 15000)
+  await waitForHttp(`http://127.0.0.1:${BRIDGE_PORT}/api/status`, 15000, bridgeAuthHeaders())
 
   setSplashStatus('Conexion con MetaTrader 5...')
   startMt5Sync()

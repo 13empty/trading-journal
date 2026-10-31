@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('desktop', {
   notify: (title, body) => ipcRenderer.invoke('desktop:notify', { title, body }),
   getInfo: () => ipcRenderer.invoke('desktop:info'),
+  getBridgeToken: () => ipcRenderer.invoke('desktop:bridge-token'),
   openUserData: () => ipcRenderer.invoke('desktop:open-user-data'),
   readSyncLog: (maxLines) => ipcRenderer.invoke('desktop:read-sync-log', maxLines ?? 40),
   applyBroker: (payload) => ipcRenderer.invoke('desktop:apply-broker', payload),

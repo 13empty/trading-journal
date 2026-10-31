@@ -1,4 +1,4 @@
-import { BRIDGE_URL } from './mt5Bridge'
+import { bridgeFetch } from './mt5Bridge'
 import type { CashMovement, Mt5OpenPosition } from '../types/account'
 import type { Trade } from '../types/trade'
 
@@ -43,7 +43,7 @@ async function parseJson(res: Response) {
 
 export async function fetchExchangeCatalog(): Promise<ExchangeCatalogItem[]> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/exchanges/catalog`, { signal: AbortSignal.timeout(4000) })
+    const res = await bridgeFetch('/api/exchanges/catalog', { signal: AbortSignal.timeout(4000) })
     if (!res.ok) return []
     const data = await parseJson(res)
     return Array.isArray(data.exchanges) ? data.exchanges : []
@@ -54,7 +54,7 @@ export async function fetchExchangeCatalog(): Promise<ExchangeCatalogItem[]> {
 
 export async function fetchExchangeConnections(): Promise<ExchangeConnectionPublic[]> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/exchanges`, { signal: AbortSignal.timeout(4000) })
+    const res = await bridgeFetch('/api/exchanges', { signal: AbortSignal.timeout(4000) })
     if (!res.ok) return []
     const data = await parseJson(res)
     return Array.isArray(data.connections) ? data.connections : []
@@ -72,7 +72,7 @@ export async function saveExchangeConnection(payload: {
   label?: string
 }): Promise<{ ok: boolean; error?: string; connection?: ExchangeConnectionPublic }> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/exchanges`, {
+    const res = await bridgeFetch('/api/exchanges', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -88,7 +88,7 @@ export async function saveExchangeConnection(payload: {
 
 export async function deleteExchangeConnection(id: string): Promise<boolean> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/exchanges/delete`, {
+    const res = await bridgeFetch('/api/exchanges/delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
@@ -109,7 +109,7 @@ export async function testExchangeConnection(payload: {
   label?: string
 }): Promise<{ ok: boolean; error?: string; balance?: number | null; tradeCount?: number }> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/exchanges/test`, {
+    const res = await bridgeFetch('/api/exchanges/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -125,7 +125,7 @@ export async function testExchangeConnection(payload: {
 
 export async function syncExchanges(id?: string): Promise<ExchangeSyncResult[]> {
   try {
-    const res = await fetch(`${BRIDGE_URL}/api/exchanges/sync`, {
+    const res = await bridgeFetch('/api/exchanges/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(id ? { id } : {}),

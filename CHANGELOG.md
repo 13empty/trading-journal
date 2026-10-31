@@ -7,6 +7,17 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.2.12] — 2026-10-31
+
+### Security / Seguridad
+
+- **ES:** El puente local (`127.0.0.1:3847`) ya no acepta peticiones anónimas ni `Access-Control-Allow-Origin: *`. Cada arranque genera un token. Hay que enviarlo en el header `X-TJ-Token` (en el WebSocket, en `?token=`). Un `Origin` que no sea la propia app recibe 403; sin token, 401. Así una página web cualquiera no puede cerrar posiciones, borrar el estado ni leer o guardar API keys de exchanges.
+  **EN:** The local bridge (`127.0.0.1:3847`) no longer accepts anonymous calls or `Access-Control-Allow-Origin: *`. Each launch generates a token. Send it in the `X-TJ-Token` header (on the WebSocket, as `?token=`). An `Origin` that is not the app itself gets 403; a missing token gets 401. A random web page can no longer close positions, wipe state, or read or save exchange API keys.
+- **ES:** La ventana Electron recibe el token por el preload. Python (`mt5_sync.py`, `offline_resync.py`, `mt5-sync.exe`) lo toma de `TJ_BRIDGE_TOKEN` o del archivo `bridge-token`. En el navegador de desarrollo, Vite se lo da solo a la página del journal. El EA de MQL5 lo lee de la carpeta común (`trading-journal-bridge-token.txt`) o del input `BridgeToken`. Hay que recompilar `mt5-sync.exe` para que el ejecutable envíe el header.
+  **EN:** The Electron window receives the token through preload. Python (`mt5_sync.py`, `offline_resync.py`, `mt5-sync.exe`) reads `TJ_BRIDGE_TOKEN` or the `bridge-token` file. In browser dev, Vite gives it only to the journal page. The MQL5 EA reads it from the common folder (`trading-journal-bridge-token.txt`) or the `BridgeToken` input. Rebuild `mt5-sync.exe` so the executable sends the header.
+
+---
+
 ## [1.2.11] — 2026-09-28
 
 ### Added / Añadido
