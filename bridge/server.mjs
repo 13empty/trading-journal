@@ -8,16 +8,23 @@ import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
 import { processMt5Event, createEmptyState } from './mt5Processor.mjs'
 import { handleExchanges } from './exchanges/index.mjs'
+import {
+  appOrigins,
+  generateToken,
+  headerToken,
+  isOriginAllowed,
+  tokensEqual,
+  writeTokenFile,
+} from './auth.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-function bridgeDir() {
-  return process.env.TJ_BRIDGE_DIR || __dirname
-}
-
 export function startBridge(options = {}) {
+  const dataDir = options.dataDir || process.env.TJ_BRIDGE_DIR || __dirname
   const PORT = Number(options.port ?? process.env.TJ_BRIDGE_PORT ?? 3847)
-  const DATA_FILE = path.join(bridgeDir(), 'bridge-state.json')
+  const bridgeToken = String(options.token || process.env.TJ_BRIDGE_TOKEN || generateToken())
+  const tokenFile = writeTokenFile(dataDir, bridgeToken)
+  const DATA_FILE = path.join(dataDir, 'bridge-state.json')
 
   let state = createEmptyState()
   let syncCache = null
@@ -26,7 +33,7 @@ export function startBridge(options = {}) {
   /** Pending command for Python sync agent (e.g. close_all) */
   let pendingCommand = null
   let lastCommandResult = null
-  const COMMAND_FILE = path.join(bridgeDir(), 'bridge-command.json')
+  const COMMAND_FILE = path.join(dataDir, 'bridge-command.json')
   const CLAIM_STALE_MS = 90_000
 
   function invalidateSyncCache() {
@@ -156,14 +163,37 @@ export function startBridge(options = {}) {
     }
   }
 
-  function json(res, status, body) {
-    res.writeHead(status, {
+  function responseHeaders(req) {
+    const headers = {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    })
+      Vary: 'Origin',
+    }
+    const origin = req.headers.origin
+    if (origin && appOrigins().has(origin)) {
+      headers['Access-Control-Allow-Origin'] = origin
+      headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+      headers['Access-Control-Allow-Headers'] = 'Content-Type, X-TJ-Token'
+      headers['Access-Control-Allow-Private-Network'] = 'true'
+    }
+    return headers
+  }
+
+  function json(req, res, status, body) {
+    res.writeHead(status, responseHeaders(req))
     res.end(JSON.stringify(body))
+  }
+
+  function rejectIfUnauthorized(req, res) {
+    if (!isOriginAllowed(req.headers.origin)) {
+      res.writeHead(403, { 'Content-Type': 'application/json', Vary: 'Origin' })
+      res.end(JSON.stringify({ error: 'forbidden' }))
+      return true
+    }
+    if (!tokensEqual(bridgeToken, headerToken(req))) {
+      json(req, res, 401, { error: 'unauthorized' })
+      return true
+    }
+    return false
   }
 
   function readBody(req) {
@@ -186,21 +216,27 @@ export function startBridge(options = {}) {
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://127.0.0.1:${PORT}`)
+    const send = (status, body) => json(req, res, status, body)
 
     if (req.method === 'OPTIONS') {
-      res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      })
+      if (!req.headers.origin || !appOrigins().has(req.headers.origin)) {
+        res.writeHead(403, { 'Content-Type': 'application/json', Vary: 'Origin' })
+        res.end(JSON.stringify({ error: 'forbidden' }))
+        return
+      }
+      const headers = responseHeaders(req)
+      delete headers['Content-Type']
+      res.writeHead(204, headers)
       res.end()
       return
     }
 
+    if (rejectIfUnauthorized(req, res)) return
+
     try {
       if (req.method === 'GET' && url.pathname === '/api/status') {
         const connected = Boolean(state.lastSeen && Date.now() - state.lastSeen < 120_000)
-        return json(res, 200, {
+        return send(200, {
           connected,
           lastSeen: state.lastSeen,
           account: state.account,
@@ -213,12 +249,7 @@ export function startBridge(options = {}) {
       }
 
       if (req.method === 'GET' && url.pathname === '/api/sync') {
-        res.writeHead(200, {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        })
+        res.writeHead(200, responseHeaders(req))
         res.end(getSyncBody())
         return
       }
@@ -230,7 +261,7 @@ export function startBridge(options = {}) {
         saveState()
         const eventType = body.type || 'heartbeat'
         broadcast(wss, broadcastMode(eventType), result.patch)
-        return json(res, 200, {
+        return send(200, {
           ok: true,
           tradeCount: state.trades.length,
           ...result.patch,
@@ -241,14 +272,14 @@ export function startBridge(options = {}) {
         state = createEmptyState()
         saveState()
         broadcast(wss, 'full')
-        return json(res, 200, { ok: true })
+        return send(200, { ok: true })
       }
 
       /** Recarga bridge-state.json del disco (tras resync offline con la app abierta) */
       if (req.method === 'POST' && url.pathname === '/api/reload') {
         loadState()
         broadcast(wss, 'full')
-        return json(res, 200, {
+        return send(200, {
           ok: true,
           tradeCount: state.trades.length,
           cashCount: state.cashMovements.length,
@@ -264,7 +295,7 @@ export function startBridge(options = {}) {
           pendingCommand.status === 'claimed' &&
           Date.now() - (pendingCommand.claimedAt || pendingCommand.at || 0) < CLAIM_STALE_MS
         ) {
-          return json(res, 200, { ok: true, command: pendingCommand, alreadyQueued: true })
+          return send(200, { ok: true, command: pendingCommand, alreadyQueued: true })
         }
         pendingCommand = {
           action: 'close_all',
@@ -276,7 +307,7 @@ export function startBridge(options = {}) {
         lastCommandResult = null
         persistCommand(pendingCommand)
         console.log(`[bridge] queued close_all (${pendingCommand.id})`)
-        return json(res, 200, { ok: true, command: pendingCommand })
+        return send(200, { ok: true, command: pendingCommand })
       }
 
       /**
@@ -285,7 +316,7 @@ export function startBridge(options = {}) {
        */
       if (req.method === 'GET' && url.pathname === '/api/command') {
         if (!pendingCommand?.action) {
-          return json(res, 200, { action: null })
+          return send(200, { action: null })
         }
         const claimedAt = pendingCommand.claimedAt || 0
         if (
@@ -293,7 +324,7 @@ export function startBridge(options = {}) {
           Date.now() - claimedAt < CLAIM_STALE_MS
         ) {
           // Still being processed — do not re-issue
-          return json(res, 200, { action: null, inProgress: true, id: pendingCommand.id })
+          return send(200, { action: null, inProgress: true, id: pendingCommand.id })
         }
         pendingCommand = {
           ...pendingCommand,
@@ -301,7 +332,7 @@ export function startBridge(options = {}) {
           claimedAt: Date.now(),
         }
         persistCommand(pendingCommand)
-        return json(res, 200, {
+        return send(200, {
           action: pendingCommand.action,
           id: pendingCommand.id,
           reason: pendingCommand.reason,
@@ -314,34 +345,56 @@ export function startBridge(options = {}) {
         lastCommandResult = await readBody(req)
         console.log(`[bridge] command result:`, lastCommandResult)
         clearPendingCommand()
-        return json(res, 200, { ok: true })
+        return send(200, { ok: true })
       }
 
       if (req.method === 'GET' && url.pathname === '/api/command/result') {
-        if (lastCommandResult) return json(res, 200, { ...lastCommandResult, pending: false })
+        if (lastCommandResult) return send(200, { ...lastCommandResult, pending: false })
         if (pendingCommand?.action) {
-          return json(res, 200, {
+          return send(200, {
             ok: false,
             pending: true,
             commandId: pendingCommand.id,
             status: pendingCommand.status,
           })
         }
-        return json(res, 200, { ok: false, pending: false, idle: true })
+        return send(200, { ok: false, pending: false, idle: true })
       }
 
-      if (await handleExchanges(req, res, url, { json, readBody, dataDir: bridgeDir() })) {
+      const reply = (_res, status, body) => send(status, body)
+      if (await handleExchanges(req, res, url, { json: reply, readBody, dataDir })) {
         return
       }
 
-      json(res, 404, { error: 'Not found' })
+      send(404, { error: 'Not found' })
     } catch (err) {
       console.error(err)
-      json(res, 500, { error: String(err) })
+      send(500, { error: String(err) })
     }
   })
 
-  const wss = new WebSocketServer({ server })
+  const wss = new WebSocketServer({
+    server,
+    verifyClient: (info, cb) => {
+      const origin = info.origin || info.req?.headers?.origin
+      if (origin && !appOrigins().has(origin)) {
+        cb(false, 403, 'Forbidden')
+        return
+      }
+      let token = headerToken(info.req)
+      try {
+        const handshake = new URL(info.req?.url || '/', 'http://127.0.0.1')
+        if (!token) token = handshake.searchParams.get('token') || ''
+      } catch {
+        token = token || ''
+      }
+      if (!tokensEqual(bridgeToken, token)) {
+        cb(false, 401, 'Unauthorized')
+        return
+      }
+      cb(true)
+    },
+  })
 
   wss.on('connection', (ws) => {
     ws.send(JSON.stringify(fullSyncPayload(state)))
@@ -349,9 +402,14 @@ export function startBridge(options = {}) {
 
   return new Promise((resolve, reject) => {
     server.listen(PORT, '127.0.0.1', () => {
-      console.log(`Bridge http://127.0.0.1:${PORT}`)
+      const address = server.address()
+      const boundPort = typeof address === 'object' && address ? address.port : PORT
+      console.log(`Bridge http://127.0.0.1:${boundPort}`)
+      console.log(`[bridge] token file ${tokenFile}`)
       resolve({
-        port: PORT,
+        port: boundPort,
+        token: bridgeToken,
+        dataDir,
         close: () =>
           new Promise((res) => {
             wss.close()

@@ -1,7 +1,7 @@
 {
   "name": "trading-journal",
   "private": true,
-  "version": "1.2.11",
+  "version": "1.2.12",
   "description": "Trading Journal con sync MT5",
   "main": "electron/main.cjs",
   "type": "module",
@@ -22,6 +22,7 @@
     "dist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-ejecutable.ps1",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "node --test bridge/auth.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -33,6 +33,7 @@ except ImportError:
     print("Instala: pip install MetaTrader5")
     raise
 
+from bridge_auth import bridge_request  # noqa: E402
 from mt5_sync import (  # noqa: E402
     HISTORY_DAYS,
     build_position_trade,
@@ -118,7 +119,7 @@ def notify_bridge_reload() -> bool:
     if requests is None:
         return False
     try:
-        r = requests.post("http://127.0.0.1:3847/api/reload", timeout=10)
+        r = bridge_request("POST", "http://127.0.0.1:3847/api/reload", timeout=10)
         return r.status_code == 200
     except requests.RequestException:
         return False

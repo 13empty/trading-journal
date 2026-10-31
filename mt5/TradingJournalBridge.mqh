@@ -6,21 +6,47 @@
 #define TJ_BRIDGE_MQH
 
 input string TJ_BridgeUrl = "http://127.0.0.1:3847/api/event";
+input string TJ_BridgeToken = ""; // Vacío = archivo común trading-journal-bridge-token.txt
+
+string TJ_ResolveToken()
+{
+   string token = TJ_BridgeToken;
+   if(StringLen(token) == 0)
+   {
+      int handle = FileOpen("trading-journal-bridge-token.txt", FILE_READ|FILE_TXT|FILE_ANSI|FILE_COMMON);
+      if(handle != INVALID_HANDLE)
+      {
+         token = FileReadString(handle);
+         FileClose(handle);
+      }
+   }
+   StringReplace(token, "\r", "");
+   StringReplace(token, "\n", "");
+   StringTrimLeft(token);
+   StringTrimRight(token);
+   return token;
+}
 
 bool TJ_PostJson(const string body)
 {
    char data[], result[];
+   string token = TJ_ResolveToken();
    string headers = "Content-Type: application/json\r\n";
+   if(StringLen(token) > 0)
+      headers += "X-TJ-Token: " + token + "\r\n";
    ArrayResize(data, 0);
    int len = StringToCharArray(body, data, 0, WHOLE_ARRAY, CP_UTF8);
    if(len > 0) ArrayResize(data, len - 1);
    ResetLastError();
-   int code = WebRequest("POST", TJ_BridgeUrl, headers, 10000, data, result, headers);
+   string resultHeaders;
+   int code = WebRequest("POST", TJ_BridgeUrl, headers, 10000, data, result, resultHeaders);
    if(code == -1)
    {
       Print("TJ: WebRequest error ", GetLastError(), " — añade ", TJ_BridgeUrl);
       return false;
    }
+   if(code == 401 || code == 403)
+      Print("TJ: HTTP ", code, " — token del puente. Input TJ_BridgeToken o archivo común trading-journal-bridge-token.txt");
    return code == 200;
 }
 

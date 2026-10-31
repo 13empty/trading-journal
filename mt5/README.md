@@ -100,3 +100,5 @@ Trading Journal Bridge activo → http://127.0.0.1:3847/api/event
 Si dice **Error 4014** → falta la URL en WebRequest.
 
 Si dice **WebRequest falló** → ejecuta `npm run bridge` primero.
+
+Si dice **HTTP 401** → el puente exige token. Con `BridgeToken` vacío, el EA lee `trading-journal-bridge-token.txt` en la carpeta común de MT5 (el puente lo copia ahí en Windows). También puedes pegar el contenido de `bridge/bridge-token` en el input `BridgeToken`. Recompila con F7.

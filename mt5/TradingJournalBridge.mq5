@@ -7,6 +7,7 @@
 #property description "Envia trades al Trading Journal (puente en http://127.0.0.1:3847)"
 
 input string BridgeUrl = "http://127.0.0.1:3847/api/event";
+input string BridgeToken = ""; // Vacío = archivo común trading-journal-bridge-token.txt
 input int    HeartbeatSec = 5;
 input bool   SyncHistoryOnStart = true;
 input int    HistoryDays = 365;
@@ -274,6 +275,26 @@ void SyncClosedPositions()
 }
 
 //+------------------------------------------------------------------+
+string ResolveBridgeToken()
+{
+   string token = BridgeToken;
+   if(StringLen(token) == 0)
+   {
+      int handle = FileOpen("trading-journal-bridge-token.txt", FILE_READ|FILE_TXT|FILE_ANSI|FILE_COMMON);
+      if(handle != INVALID_HANDLE)
+      {
+         token = FileReadString(handle);
+         FileClose(handle);
+      }
+   }
+   StringReplace(token, "\r", "");
+   StringReplace(token, "\n", "");
+   StringTrimLeft(token);
+   StringTrimRight(token);
+   return token;
+}
+
+//+------------------------------------------------------------------+
 bool PostJson(string body)
 {
    char data[];
@@ -286,7 +307,10 @@ bool PostJson(string body)
       ArrayResize(data, len - 1);
 
    int timeout = 10000;
+   string token = ResolveBridgeToken();
    string headers = "Content-Type: application/json\r\n";
+   if(StringLen(token) > 0)
+      headers += "X-TJ-Token: " + token + "\r\n";
 
    ResetLastError();
    int code = WebRequest("POST", BridgeUrl, headers, timeout, data, result, resultHeaders);
@@ -301,6 +325,12 @@ bool PostJson(string body)
       Print("   http://127.0.0.1:3847");
       Print("   http://127.0.0.1");
       Print("4) Reinicia MT5 y vuelve a poner el EA en el gráfico");
+      return false;
+   }
+   if(code == 401 || code == 403)
+   {
+      Print("Bridge rechazó la petición (HTTP ", code, "). Falta el token del puente.");
+      Print("Déjalo vacío para leer trading-journal-bridge-token.txt (carpeta común de MT5), o pega BridgeToken.");
       return false;
    }
    if(code != 200)

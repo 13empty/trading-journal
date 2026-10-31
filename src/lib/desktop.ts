@@ -30,6 +30,7 @@ declare global {
     desktop?: {
       notify: (title: string, body: string) => Promise<void>
       getInfo: () => Promise<DesktopAppInfo>
+      getBridgeToken: () => Promise<string>
       openUserData: () => Promise<void>
       readSyncLog: (maxLines?: number) => Promise<string>
       applyBroker: (payload: {

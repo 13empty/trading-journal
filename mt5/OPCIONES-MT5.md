@@ -72,6 +72,8 @@ void OnTradeTransaction(const MqlTradeTransaction& trans, ...) {
 
 WebRequest: añade `http://127.0.0.1:3847` en opciones de MT5.
 
+El puente exige el header `X-TJ-Token`. Con `TJ_BridgeToken` vacío, el include lee `trading-journal-bridge-token.txt` de la carpeta común de MT5.
+
 ---
 
 ## Importar Excel sigue funcionando

@@ -42,6 +42,7 @@ Invoke-Python @(
   "--distpath", $outDir,
   "--workpath", (Join-Path $outDir "pyinstaller-work"),
   "--specpath", (Join-Path $outDir "pyinstaller-spec"),
+  "--hidden-import", "bridge_auth",
   "--hidden-import", "MetaTrader5",
   "--hidden-import", "numpy",
   "--hidden-import", "numpy._core._multiarray_umath",
